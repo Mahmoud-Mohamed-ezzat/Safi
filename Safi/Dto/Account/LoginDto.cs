@@ -1,7 +1,10 @@
-﻿namespace Safi.Dto.Account
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Safi.Dto.Account
 {
     public class LoginDto
     {
+        [EmailAddress]
         public string Email { get; set; }
         public string Password { get; set; }
     }

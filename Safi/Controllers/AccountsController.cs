@@ -156,7 +156,7 @@ namespace Safi.Controllers
             }
         }
         [AllowAnonymous]
-        [HttpPost("SignupAsAPublisher")]
+        [HttpPost("SignupAsADoctor")]
         public async Task<IActionResult> SignupAsADoctor([FromForm] SignupOfDoctorDto model)
         {
             try
@@ -249,13 +249,22 @@ namespace Safi.Controllers
         public async Task<IActionResult> Login(LoginDto login)
         {
             if (!ModelState.IsValid) return BadRequest();
-            var user = await _userManager.FindByEmailAsync(login.Email);
+            
+            // Load user with refresh tokens
+            var user = await _context.Users
+                .Include(u => u.RefreshTokens)
+                .FirstOrDefaultAsync(u => u.Email == login.Email);
+            
+            if (user == null) return StatusCode(500, "password or/and email isn't true");
+            
             var model = await _signInManager.CheckPasswordSignInAsync(user, login.Password, false);
             var VerifiedUser = await _userManager.IsEmailConfirmedAsync(user);
             if (!model.Succeeded && !VerifiedUser) return StatusCode(500, "password or/and email isn't true");
-            return Ok(_tokenServices.GenerateToken(user));
+            
+            var response = await _tokenServices.GenerateToken(user);
+            return Ok(response);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetDoctors")]
         public async Task<IActionResult> GetDoctors()
         {
@@ -265,7 +274,7 @@ namespace Safi.Controllers
             var DoctorsDto = Doctors.Select(p => p.ToGetDoctorsDto()).ToList();
             return Ok(DoctorsDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetDoctors/id")]
         public async Task<IActionResult> GetDoctorById(string id)
         {
@@ -275,7 +284,7 @@ namespace Safi.Controllers
             var DoctorsDto = Doctor.ToGetDoctorsDto();
             return Ok(DoctorsDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetStaff")]
         public async Task<IActionResult> GetStaff()
         {
@@ -286,7 +295,7 @@ namespace Safi.Controllers
             var StaffDto = Staffs.Select(p => p.ToGetStaffsDto()).ToList();
             return Ok(StaffDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetStaff/id")]
         public async Task<IActionResult> GetStaffById(string id)
         {
@@ -297,7 +306,7 @@ namespace Safi.Controllers
             var StaffDto = Staff.ToGetStaffsDto();
             return Ok(StaffDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetPatients")]
         public async Task<IActionResult> GetPatients()
         {
@@ -308,7 +317,7 @@ namespace Safi.Controllers
             var PatientsDto = Patients.Select(p => p.ToGetPatientsDto()).ToList();
             return Ok(PatientsDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetPatients/id")]
         public async Task<IActionResult> GetPatientById(string id)
         {
@@ -319,7 +328,7 @@ namespace Safi.Controllers
             var PatientDto = Patient.ToGetPatientsDto();
             return Ok(PatientDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetSubAdmins")]
         public async Task<IActionResult> GetSubAdmins()
         {
@@ -327,7 +336,7 @@ namespace Safi.Controllers
             var SubAdminsDto = SubAdmins.Select(s => s.ToGetSubAdminsDto()).ToList();
             return Ok(SubAdminsDto);
         }
-        [Authorize]
+        //[Authorize]
         [HttpGet("GetSubAdmins/id")]
         public async Task<IActionResult> GetSubAdminById(string id)
         {

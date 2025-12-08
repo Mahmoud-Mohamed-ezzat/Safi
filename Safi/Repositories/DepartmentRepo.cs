@@ -57,7 +57,7 @@ namespace Safi.Repositories
         }
         public async Task<List<GetDoctorsDto>> GetDoctorsOfDepartment(string name)
         {
-            var doctors = await _context.Doctors.Include(d => d.Department).Where(d => d.Department!.Name == name).ToListAsync();
+            var doctors = await _context.Doctors.Include(d => d.Department).Where(d => d.Department.Name.ToLower().Contains(name.ToLower())).ToListAsync();
             var doctorsDto = doctors.Select(d => d.ToGetDoctorsDto()).ToList();
             return doctorsDto;
         }
@@ -69,7 +69,7 @@ namespace Safi.Repositories
         }
         public async Task<List<GetPatientsDto>> GetPatientsOfDepartment(string name)
         {
-            var patients = await _context.Patients.Include(d => d.Departments).Where(d => d.Departments!.Any(d => d.Name == name)).ToListAsync();
+            var patients = await _context.Patients.Include(d => d.Departments).Where(d => d.Departments!.Any(d => d.Name.ToLower().Contains(name.ToLower()))).ToListAsync();
             var patientsDto = patients.Select(d => d.ToGetPatientsDto()).ToList();
             return patientsDto;
         }
@@ -81,7 +81,7 @@ namespace Safi.Repositories
         }
         public async Task<List<GetStaffsDto>> GetStaffOfDepartment(string name)
         {
-            var staff = await _context.Staffs.Include(d => d.Department).Where(d => d.Department.Name == name).ToListAsync();
+            var staff = await _context.Staffs.Include(d => d.Department).Where(d => d.Department.Name.ToLower().Contains(name.ToLower()) ).ToListAsync();
             var staffDto = staff.Select(s => s.ToGetStaffsDto()).ToList();
             return staffDto;
         }

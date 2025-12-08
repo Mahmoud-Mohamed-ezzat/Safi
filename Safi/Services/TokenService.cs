@@ -17,12 +17,13 @@ namespace Safi.Services
         readonly SymmetricSecurityKey _key;
         readonly IHttpContextAccessor _httpContextAccessor;
         readonly SafiContext _context;
-        public TokenService(UserManager<User> user, IConfiguration config, IHttpContextAccessor httpContextAccessor)
+        public TokenService(UserManager<User> user, IConfiguration config, IHttpContextAccessor httpContextAccessor, SafiContext context)
         {
             _config = config;
             _user = user;
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:key"]));
             _httpContextAccessor = httpContextAccessor;
+            _context = context;
         }
         public async Task<string> CreateJWT(User user)
         {
@@ -64,22 +65,35 @@ namespace Safi.Services
         {
             var ResponseOfLogin = new ResponseOfLogin();
             var token = await CreateJWT(user);
+            
+            // Populate common response fields
+            ResponseOfLogin.Username = user.Name;
+            ResponseOfLogin.IsAuthenticated = true;
+            ResponseOfLogin.Id = user.Id;
+            ResponseOfLogin.Email = user.Email;
+            ResponseOfLogin.Token = token;
+            ResponseOfLogin.Custom_Id = user.Custome_Id;
+            ResponseOfLogin.Role = (await _user.GetRolesAsync(user)).FirstOrDefault();
+            
+            // Handle refresh token (reuse existing or create new)
             if (user.RefreshTokens.Any(t => t.IsActive))
             {
-                var RefreshToken = user.RefreshTokens.FirstOrDefault(t => t.IsActive);
-                ResponseOfLogin.RefreshToken = RefreshToken.Token;
-                ResponseOfLogin.RefreshTokenExpiration = RefreshToken.ExpiresOn;
+                var existingRefreshToken = user.RefreshTokens.FirstOrDefault(t => t.IsActive);
+                ResponseOfLogin.RefreshToken = existingRefreshToken.Token;
+                ResponseOfLogin.RefreshTokenExpiration = existingRefreshToken.ExpiresOn;
             }
             else
             {
                 var refreshToken = await GenerateRefreshToken(user);
-                ResponseOfLogin.Username = user.UserName;
-                ResponseOfLogin.IsAuthenticated = true;
-                ResponseOfLogin.Id = user.Id;
-                ResponseOfLogin.Email = user.Email;
-                ResponseOfLogin.Token = token;
+                
+                // Save refresh token to database
+                user.RefreshTokens.Add(refreshToken);
+                await _context.SaveChangesAsync();
+                
                 ResponseOfLogin.RefreshToken = refreshToken.Token;
+                ResponseOfLogin.RefreshTokenExpiration = refreshToken.ExpiresOn;
             }
+            
             return ResponseOfLogin;
         }
         public async Task<bool> RevokeRefreshToken()
