@@ -1,11 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Safi.Dto.Account
 {
     public class SignupFoRAdminOfWebDto
     {
-        public string username { get; set; }
-        public string email { get; set; }
-        public string Password { get; set; }
-        public string Phone { get; set; }
+        public required string username { get; set; }
+        
+        [EmailAddress]
+        public required string email { get; set; }
+        public required string Password { get; set; }
+        public required string Phone { get; set; }
         public IFormFile? Image { get; set; }
     }
 }

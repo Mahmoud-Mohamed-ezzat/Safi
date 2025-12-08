@@ -27,37 +27,37 @@ namespace Safi.Controllers
             return Ok(Departments);
         }
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetDepartmentById([FromBody] int id)
+        public async Task<IActionResult> GetDepartmentById([FromRoute] int id)
         {
             var Departments = await _Repo.GetDepartmentById(id);
             return Ok(Departments);
         }
         [HttpGet("GetDoctorsOfDepartment")]
-        public async Task<IActionResult> GetDoctorsOfDepartment([FromBody] string name)
+        public async Task<IActionResult> GetDoctorsOfDepartment(string name)
         {
             var Departments = await _Repo.GetDoctorsOfDepartment(name);
             return Ok(Departments);
         }
         [HttpGet("GetDoctorsOfDepartment/{id:int}")]
-        public async Task<IActionResult> GetDoctorsOfDepartment([FromBody] int id)
+        public async Task<IActionResult> GetDoctorsOfDepartment([FromRoute] int id)
         {
             var Departments = await _Repo.GetDoctorsOfDepartment(id);
             return Ok(Departments);
         }
         [HttpGet("GetPatientsOfDepartment")]
-        public async Task<IActionResult> GetPatientsOfDepartment([FromBody]  string name)
+        public async Task<IActionResult> GetPatientsOfDepartment(string name)
         {
             var Departments = await _Repo.GetPatientsOfDepartment(name);
             return Ok(Departments);
         }
         [HttpGet("GetPatientsOfDepartment/{id:int}")]
-        public async Task<IActionResult> GetPatientsOfDepartment([FromBody] int id)
+        public async Task<IActionResult> GetPatientsOfDepartment([FromRoute] int id)
         {
             var Departments = await _Repo.GetPatientsOfDepartment(id);
             return Ok(Departments);
         }
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete([FromBody] int id)
+        public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var Department = await _Repo.RemoveDepartment(id);
             if (Department != null)
@@ -67,7 +67,7 @@ namespace Safi.Controllers
             return BadRequest();
         }
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update([FromBody] int id, [FromBody] DepartmentDto departmentDto)
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] DepartmentDto departmentDto)
         {
             var Department = await _Repo.UpdateDepartment(id, departmentDto);
             if (Department != null)

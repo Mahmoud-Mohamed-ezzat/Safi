@@ -59,13 +59,14 @@ namespace Safi.Controllers
 
                         return Ok($"registerd is successful ");
                     }
-                    else { return StatusCode(500, Role.Errors.ToString()); }
+                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
                 }
-                else { return StatusCode(500, createduser.Errors.ToString()); }
+                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
             }
         }
 
@@ -100,13 +101,14 @@ namespace Safi.Controllers
 
                         return Ok($"registerd is successful ");
                     }
-                    else { return StatusCode(500, Role.Errors.ToString()); }
+                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
                 }
-                else { return StatusCode(500, createduser.Errors.ToString()); }
+                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
             }
         }
 
@@ -143,13 +145,14 @@ namespace Safi.Controllers
 
                         return Ok($"registerd is successful ");
                     }
-                    else { return StatusCode(500, Role.Errors.ToString()); }
+                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
                 }
-                else { return StatusCode(500, createduser.Errors.ToString()); }
+                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
             }
         }
         [AllowAnonymous]
@@ -187,13 +190,14 @@ namespace Safi.Controllers
 
                         return Ok($"registerd is successful ");
                     }
-                    else { return StatusCode(500, Role.Errors.ToString()); }
+                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
                 }
-                else { return StatusCode(500, createduser.Errors.ToString()); }
+                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
             }
         }
 
@@ -230,13 +234,14 @@ namespace Safi.Controllers
 
                         return Ok($"registerd is successful ");
                     }
-                    else { return StatusCode(500, Role.Errors.ToString()); }
+                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
                 }
-                else { return StatusCode(500, createduser.Errors.ToString()); }
+                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
             }
         }
         [AllowAnonymous]
