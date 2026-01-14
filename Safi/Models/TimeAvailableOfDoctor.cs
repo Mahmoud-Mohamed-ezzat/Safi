@@ -15,5 +15,8 @@ namespace Safi.Models
 
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public DateOnly Day { get; set; }
+        public int Slots { get; set; }
+
     }
 }

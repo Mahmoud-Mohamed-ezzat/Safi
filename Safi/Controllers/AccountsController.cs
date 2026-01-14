@@ -356,6 +356,5 @@ namespace Safi.Controllers
             await _userManager.UpdateSecurityStampAsync(user);
             return Ok("log Out succesfully");
         }
-
     }
 }

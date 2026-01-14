@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Reservation Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --accent: #00d4aa;
+            --accent-hover: #00ffcc;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --text: #e4e4e7;
+            --text-muted: #71717a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(90deg, var(--accent), #667eea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.2);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #667eea);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status-connected {
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--accent);
+        }
+
+        .status-disconnected {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--danger);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .dot-green {
+            background: var(--accent);
+        }
+
+        .dot-red {
+            background: var(--danger);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .slot {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .slot:hover:not(.reserved) {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .slot.reserved {
+            background: rgba(255, 71, 87, 0.15);
+            border-color: var(--danger);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .slot.my-reservation {
+            background: rgba(0, 212, 170, 0.15);
+            border-color: var(--accent);
+        }
+
+        .slot-time {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .slot-status {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+        }
+
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-success {
+            color: var(--accent);
+        }
+
+        .log-error {
+            color: var(--danger);
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .patient-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, var(--accent), #667eea);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏥 Real-Time Reservation Test</h1>
+
+        <div class="card">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Patient ID (simulated)</label>
+                    <input type="text" id="patientId" placeholder="Enter patient ID">
+                </div>
+                <div class="form-group">
+                    <label>Doctor ID</label>
+                    <input type="text" id="doctorId" placeholder="Enter doctor ID">
+                </div>
+                <div class="form-group">
+                    <label>Day (YYYY-MM-DD)</label>
+                    <input type="text" id="day" placeholder="e.g., 2025-12-27">
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="connectBtn" onclick="connect()">Connect</button>
+                <button class="btn btn-primary" id="loadSlotsBtn" onclick="loadSlots()" disabled>Load Slots</button>
+                <div id="connectionStatus" class="status status-disconnected">
+                    <span class="dot dot-red"></span> Disconnected
+                </div>
+                <span class="patient-badge" id="patientBadge" style="display:none;"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Available Slots</h2>
+            <div id="slotsContainer" class="slots-grid">
+                <p style="color: var(--text-muted);">Connect and load slots to see available times</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 15px;">📋 Activity Log</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let connection = null;
+        let currentPatientId = '';
+        let currentDoctorId = '';
+        let currentDay = '';
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+
+        async function connect() {
+            currentPatientId = document.getElementById('patientId').value;
+            currentDoctorId = document.getElementById('doctorId').value;
+            currentDay = document.getElementById('day').value;
+
+            if (!currentPatientId || !currentDoctorId || !currentDay) {
+                log('Please fill in all fields', 'error');
+                return;
+            }
+
+            const hubUrl = window.location.origin + '/reservationHub';
+            log(`Connecting to ${hubUrl}...`, 'info');
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl(hubUrl)
+                .withAutomaticReconnect()
+                .build();
+
+            // Event handlers
+            connection.on('ReceiveSlots', (slots) => {
+                log(`Received ${slots.length} slots`, 'success');
+                renderSlots(slots);
+            });
+
+            connection.on('ReservationResult', (result) => {
+                if (result.success) {
+                    log(`✅ ${result.message} (Slot #${result.reservationId})`, 'success');
+                    updateSlotUI(result.reservationId, true, currentPatientId);
+                } else {
+                    log(`❌ ${result.message} (Slot #${result.reservationId})`, 'error');
+                }
+            });
+
+            connection.on('SlotReserved', (data) => {
+                log(`🔔 Slot #${data.reservationId} was reserved by patient ${data.patientId}`, 'info');
+                updateSlotUI(data.reservationId, true, data.patientId);
+            });
+
+            connection.onreconnecting(() => {
+                log('Reconnecting...', 'info');
+                updateConnectionStatus(false);
+            });
+
+            connection.onreconnected(() => {
+                log('Reconnected!', 'success');
+                updateConnectionStatus(true);
+                joinGroup();
+            });
+
+            connection.onclose(() => {
+                log('Connection closed', 'error');
+                updateConnectionStatus(false);
+            });
+
+            try {
+                await connection.start();
+                log('Connected successfully!', 'success');
+                updateConnectionStatus(true);
+                document.getElementById('patientBadge').textContent = `Patient: ${currentPatientId}`;
+                document.getElementById('patientBadge').style.display = 'inline-block';
+                await joinGroup();
+            } catch (err) {
+                log(`Connection failed: ${err}`, 'error');
+            }
+        }
+
+        async function joinGroup() {
+            await connection.invoke('JoinDoctorDayGroup', currentDoctorId, currentDay);
+            log(`Joined group: ${currentDoctorId}_${currentDay}`, 'success');
+            document.getElementById('loadSlotsBtn').disabled = false;
+        }
+
+        async function loadSlots() {
+            log('Loading available slots...', 'info');
+            await connection.invoke('GetAvailableSlots', currentDoctorId, currentDay);
+        }
+
+        async function reserveSlot(reservationId) {
+            log(`Attempting to reserve slot #${reservationId}...`, 'info');
+            await connection.invoke('ReserveSlot', reservationId, currentPatientId);
+        }
+
+        function renderSlots(slots) {
+            const container = document.getElementById('slotsContainer');
+            if (slots.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted);">No slots available for this doctor on this day</p>';
+                return;
+            }
+
+            // Check if user already has a reservation
+            const hasMyReservation = slots.some(s => s.patientId === currentPatientId && s.status === 'Reserved');
+
+            container.innerHTML = slots.map(slot => {
+                const time = new Date(slot.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isReserved = slot.status === 'Reserved';
+                const isMine = slot.patientId === currentPatientId;
+
+                let className = 'slot';
+                if (isReserved) {
+                    className += isMine ? ' my-reservation' : ' reserved';
+                } else if (hasMyReservation) {
+                    className += ' reserved'; // Visually disable available slots if I already have one
+                }
+
+                // Interaction logic: 
+                // - Can't click if already reserved (by anyone)
+                // - Can't click if I already have a reservation elsewhere (hasMyReservation) and this isn't it
+                const canClick = !isReserved && !hasMyReservation;
+
+                return `
+                    <div class="${className}" data-id="${slot.id}" ${canClick ? `onclick="reserveSlot(${slot.id})"` : ''}>
+                        <div class="slot-time">${time}</div>
+                        <div class="slot-status">
+                            ${isReserved ? (isMine ? '✅ Your Reservation' : `❌ Reserved`) : (hasMyReservation ? '🔒 Locked' : '🟢 Available')}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Slot #${slot.id}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateSlotUI(reservationId, isReserved, patientId) {
+            const slot = document.querySelector(`.slot[data-id="${reservationId}"]`);
+            if (slot) {
+                const isMine = patientId === currentPatientId;
+
+                slot.className = 'slot ' + (isMine ? 'my-reservation' : 'reserved');
+                slot.onclick = null;
+                const statusDiv = slot.querySelector('.slot-status');
+
+                if (statusDiv) {
+                    statusDiv.textContent = isMine ? '✅ Your Reservation' : '❌ Reserved';
+                }
+
+                // If I just made a reservation, disable all other available slots
+                if (isMine) {
+                    const allSlots = document.querySelectorAll('.slot');
+                    allSlots.forEach(s => {
+                        if (s.dataset.id != reservationId && !s.classList.contains('reserved')) {
+                            s.classList.add('reserved'); // Look disabled
+                            s.onclick = null; // Remove click
+                            const st = s.querySelector('.slot-status');
+                            if (st) st.textContent = '🔒 Locked';
+                        }
+                    });
+                }
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            if (connected) {
+                status.className = 'status status-connected';
+                status.innerHTML = '<span class="dot dot-green"></span> Connected';
+            } else {
+                status.className = 'status status-disconnected';
+                status.innerHTML = '<span class="dot dot-red"></span> Disconnected';
+            }
+        }
+
+        // Set default date to today
+        document.getElementById('day').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+
+</html>
