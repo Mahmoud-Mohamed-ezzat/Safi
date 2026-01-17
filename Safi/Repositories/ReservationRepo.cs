@@ -170,7 +170,6 @@ namespace Safi.Repositories
              });
             return true;
         }
-
         public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientId(string patientId)
         {
             var resrvations = await _context.Reservations.AsNoTracking()
