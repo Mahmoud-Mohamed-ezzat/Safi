@@ -15,7 +15,7 @@ public class ReservationHub : Hub
     public async Task TestMe(string someRandomText)
     {
         await Clients.All.SendAsync(
-            $"{this.Context.User.Identity.Name} : {someRandomText}",
+            $"{this.Context.User?.Identity?.Name} : {someRandomText}",
             CancellationToken.None);
     }
 
@@ -45,7 +45,6 @@ public class ReservationHub : Hub
                 IsAvailable = r.Status != "Reserved"
             })
             .ToListAsync();
-
         await Clients.Caller.SendAsync("ReceiveSlots", reservations);
     }
 
@@ -78,8 +77,37 @@ public class ReservationHub : Hub
 
         try
         {
+            // Use patientId parameter (not reservation.PatientId which may be null/old value)
+            var user = await _context.Patients
+                .Include(p => p.Departments)
+                .FirstOrDefaultAsync(p => p.Id == patientId);
+
+            // Include Department navigation property
+            var doctor = await _context.Doctors
+                .Include(d => d.Department)
+                .FirstOrDefaultAsync(d => d.Id == reservation.DoctorId);
+
+            if (user == null || doctor == null || doctor.Department == null)
+            {
+                await Clients.Caller.SendAsync("ReservationResult", new
+                {
+                    Success = false,
+                    Message = "Patient, Doctor, or Department not found",
+                    ReservationId = reservationId
+                });
+                return;
+            }
+
             reservation.PatientId = patientId;
             reservation.Status = "Reserved";
+
+            // Check if department already exists in patient's departments by Id
+            var departmentExists = (user.Departments ?? Enumerable.Empty<Department>()).Any(d => d.Id == doctor.Department.Id);
+            if (!departmentExists)
+            {
+                user.Departments ??= new List<Department>();
+                user.Departments.Add(doctor.Department);
+            }
             await _context.SaveChangesAsync();
 
             var dayStr = reservation.Time.ToString("yyyy-MM-dd");

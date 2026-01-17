@@ -29,8 +29,6 @@ namespace Safi.Repositories
                             .ToListAsync();
 
             return entities.Select(e => e.ToAvailableTimeInfoDto()).ToList();
-
-
         }
 
         public async Task<AvailableTimeInfoDto> CreateAvailableTime(CreateAvailableTimeDto dto)
