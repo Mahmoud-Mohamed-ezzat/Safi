@@ -5,29 +5,29 @@ namespace Safi.Mapper
 {
     public static class ReportDoctorToPatientMapper
     {
+        public static ReportDoctorToPatient ToReportDoctorToPatient(this CreateReportDoctorToPatientDto createReportDto)
+        {
+            return new ReportDoctorToPatient
+            {
+                PatientId = createReportDto.PatientId,
+                DoctorId = createReportDto.DoctorId,
+                Report = createReportDto.Report,
+                Medicines = createReportDto.Medicines
+            };
+        }
+
         public static ReportDoctorToPatientDto ToReportDoctorToPatientDto(this ReportDoctorToPatient report)
         {
             return new ReportDoctorToPatientDto
             {
                 Id = report.Id,
                 PatientId = report.PatientId,
-                PatientName = report.Patient?.Name,
+                PatientName = report.Patient?.Name ?? "Unknown", // Assuming Patient has Name
                 DoctorId = report.DoctorId,
-                DoctorName = report.Doctor?.Name,
+                DoctorName = report.Doctor?.Name ?? "Unknown", // Assuming Doctor has Name
                 Report = report.Report,
-                CreatedAt = report.CreatedAt,
-                Medicines = report.Medicines
-            };
-        }
-
-        public static ReportDoctorToPatient ToReportDoctorToPatient(this CreateReportDoctorToPatientDto dto)
-        {
-            return new ReportDoctorToPatient
-            {
-                PatientId = dto.PatientId,
-                DoctorId = dto.DoctorId,
-                Report = dto.Report,
-                Medicines = dto.Medicines ?? new List<string>()
+                Medicines = report.Medicines,
+                CreatedAt = report.CreatedAt
             };
         }
     }
