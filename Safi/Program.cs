@@ -57,6 +57,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IDepartment, DepartmentRepo>();
 builder.Services.AddScoped<IReservation, ReservationRepo>();
 builder.Services.AddScoped<IAvailableTimeOfDoctor, AvailableTimeOfDoctorRepo>();
+builder.Services.AddScoped<IReportDoctorToPatient, ReportDoctorToPatientRepo>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

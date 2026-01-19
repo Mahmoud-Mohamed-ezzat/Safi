@@ -19,7 +19,6 @@ namespace Safi.Models
 
         public DateTime CreatedAt { get; set; }
         public string Report { get; set; }
-        public DateTime? ReservationTime { get; set; }
         public List<string>? Medicines { get; set; } = new List<string>();
     }
 }
