@@ -23,7 +23,13 @@ namespace Safi.Repositories
                 .AsNoTracking()
                 .ToListAsync();
         }
-
+        public async Task<List<ReportDoctorToPatient>> GetByDateAsyncandNameOfDoctor(DateOnly date,string doctorName){
+            return await _context.ReportDoctorToPatients
+                .Include(r => r.Patient)
+                .Include(r => r.Doctor)
+                .Where(r => DateOnly.FromDateTime(r.CreatedAt) == date && r.Doctor.Name.Contains(doctorName))
+                .ToListAsync();
+        }
         public async Task<ReportDoctorToPatient?> GetByIdAsync(int id)
         {
             return await _context.ReportDoctorToPatients
@@ -32,7 +38,14 @@ namespace Safi.Repositories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
-
+        public async Task<List<ReportDoctorToPatient>> GetByDateAsync(DateOnly date)
+        {
+            return await _context.ReportDoctorToPatients
+                .Include(r => r.Patient)
+                .Include(r => r.Doctor)
+                .Where(r => DateOnly.FromDateTime(r.CreatedAt) == date)
+        .ToListAsync();
+}
         public async Task<ReportDoctorToPatient> CreateAsync(CreateReportDoctorToPatientDto dto)
         {
             var report = dto.ToReportDoctorToPatient();
@@ -72,6 +85,13 @@ namespace Safi.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
+        public async Task<List<ReportDoctorToPatient>> GetByDateAsyncandNameOfPatient(DateOnly date,string patientName){
+            return await _context.ReportDoctorToPatients
+                .Include(r => r.Patient)
+                .Include(r => r.Doctor)
+                .Where(r => DateOnly.FromDateTime(r.CreatedAt) == date && r.Patient.Name.Contains(patientName))
+                .ToListAsync();
+        }
 
         public async Task<List<ReportDoctorToPatient>> GetByPatientIdAsync(string patientId)
         {
@@ -90,16 +110,14 @@ namespace Safi.Repositories
                 .Where(r => r.DoctorId == doctorId)
                 .ToListAsync();
         }
-
-        public async Task<List<ReportDoctorToPatient>> GetByDoctorIdAndDateAsync(string doctorId, DateTime date)
+        public async Task<List<ReportDoctorToPatient>> GetByDoctorIdAndDateAsync(string doctorId, DateOnly date)
         {
             return await _context.ReportDoctorToPatients
                 .Include(r => r.Patient)
                 .Include(r => r.Doctor)
-                .Where(r => r.DoctorId == doctorId && r.CreatedAt.Date == date.Date)
+                .Where(r => r.DoctorId == doctorId && DateOnly.FromDateTime(r.CreatedAt) == date)
                 .ToListAsync();
         }
-
         public async Task<List<ReportDoctorToPatient>> GetByMedicineAndPatientAsync(string medicine, string patientId)
         {
             // Optimized to filter in the database using EF Core's primitive collection support
@@ -109,7 +127,6 @@ namespace Safi.Repositories
                 .Where(r => r.PatientId == patientId && r.Medicines != null && r.Medicines.Contains(medicine))
                 .ToListAsync();
         }
-
         public async Task<List<ReportDoctorToPatient>> GetByPatientNameAsync(string patientName)
         {
             return await _context.ReportDoctorToPatients
@@ -118,7 +135,6 @@ namespace Safi.Repositories
                 .Where(r => r.Patient != null && r.Patient.Name != null && r.Patient.Name.Contains(patientName))
                 .ToListAsync();
         }
-
         public async Task<List<ReportDoctorToPatient>> GetByDoctorNameAsync(string doctorName)
         {
             return await _context.ReportDoctorToPatients
@@ -127,7 +143,6 @@ namespace Safi.Repositories
                 .Where(r => r.Doctor != null && r.Doctor.Name != null && r.Doctor.Name.Contains(doctorName))
                 .ToListAsync();
         }
-
         public async Task<List<ReportDoctorToPatient>> GetByDoctorNameandPatientNameAsync(string doctorName, string patientName)
         {
             return await _context.ReportDoctorToPatients

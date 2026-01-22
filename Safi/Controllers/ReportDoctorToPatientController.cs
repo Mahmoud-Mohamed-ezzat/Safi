@@ -94,7 +94,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("doctor/{doctorId}/date/{date}")]
-        public async Task<IActionResult> GetByDoctorIdAndDate([FromRoute] string doctorId, [FromRoute] DateTime date)
+        public async Task<IActionResult> GetByDoctorIdAndDate(string doctorId, DateOnly date)
         {
             var reports = await _repo.GetByDoctorIdAndDateAsync(doctorId, date);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -132,5 +132,19 @@ namespace Safi.Controllers
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(dtos);
         }
+        [HttpGet("date/{date}/patient/name/{patientName}")]
+        public async Task<IActionResult> GetByDateAndPatientName(DateOnly date, string patientName)
+        {
+            var reports = await _repo.GetByDateAsyncandNameOfPatient(date, patientName);
+            var reportsDto = reports.Select(r => r.ToReportDoctorToPatientDto());
+            return Ok(reportsDto);
+        }
+        [HttpGet("date/{date}/doctor/name/{doctorName}")]
+        public async Task<IActionResult> GetByDateAndDoctorName(DateOnly date, string doctorName)
+        {
+            var reports = await _repo.GetByDateAsyncandNameOfDoctor(date, doctorName);
+            var reportsDto = reports.Select(r => r.ToReportDoctorToPatientDto());
+            return Ok(reportsDto);
+        }
     }
-}
+ }
