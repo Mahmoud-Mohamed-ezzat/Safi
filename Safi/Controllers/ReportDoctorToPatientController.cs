@@ -102,7 +102,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("search/medicine")]
-        public async Task<IActionResult> GetByMedicineAndPatient([FromQuery] string medicine, [FromQuery] string patientId)
+        public async Task<IActionResult> GetByMedicineAndPatient([FromBody] string medicine, [FromBody] string patientId)
         {
             var reports = await _repo.GetByMedicineAndPatientAsync(medicine, patientId);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -110,7 +110,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("search/patient-name")]
-        public async Task<IActionResult> GetByPatientName([FromQuery] string patientName)
+        public async Task<IActionResult> GetByPatientName([FromBody] string patientName)
         {
             var reports = await _repo.GetByPatientNameAsync(patientName);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -118,7 +118,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("search/doctor-name")]
-        public async Task<IActionResult> GetByDoctorName([FromQuery] string doctorName)
+        public async Task<IActionResult> GetByDoctorName([FromBody] string doctorName)
         {
             var reports = await _repo.GetByDoctorNameAsync(doctorName);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -126,7 +126,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("search/doctor-patient")]
-        public async Task<IActionResult> GetByDoctorNameAndPatientName([FromQuery] string doctorName, [FromQuery] string patientName)
+        public async Task<IActionResult> GetByDoctorNameAndPatientName([FromBody] string doctorName, [FromBody] string patientName)
         {
             var reports = await _repo.GetByDoctorNameandPatientNameAsync(doctorName, patientName);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -147,4 +147,4 @@ namespace Safi.Controllers
             return Ok(reportsDto);
         }
     }
- }
+}
