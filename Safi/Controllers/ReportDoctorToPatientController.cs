@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Interfaces;
 using Safi.Mapper;
-using Safi.Models;
 
 namespace Safi.Controllers
 {
@@ -26,7 +25,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById([FromRoute] int id)
+        public async Task<IActionResult> GetById(int id)
         {
             var report = await _repo.GetByIdAsync(id);
             if (report == null)
@@ -49,7 +48,7 @@ namespace Safi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateReportDoctorToPatientDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateReportDoctorToPatientDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -66,7 +65,7 @@ namespace Safi.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete([FromRoute] int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var success = await _repo.DeleteAsync(id);
             if (!success)
@@ -78,7 +77,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("patient/{patientId}")]
-        public async Task<IActionResult> GetByPatientId([FromRoute] string patientId)
+        public async Task<IActionResult> GetByPatientId(string patientId)
         {
             var reports = await _repo.GetByPatientIdAsync(patientId);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -86,7 +85,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("doctor/{doctorId}")]
-        public async Task<IActionResult> GetByDoctorId([FromRoute] string doctorId)
+        public async Task<IActionResult> GetByDoctorId(string doctorId)
         {
             var reports = await _repo.GetByDoctorIdAsync(doctorId);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
@@ -101,37 +100,38 @@ namespace Safi.Controllers
             return Ok(dtos);
         }
 
-        [HttpGet("search/medicine")]
-        public async Task<IActionResult> GetByMedicineAndPatient([FromBody] string medicine, [FromBody] string patientId)
+        [HttpGet("patient/{patientId}/medicine/{medicine}")]
+        public async Task<IActionResult> GetByMedicineAndPatient(string medicine, string patientId)
         {
             var reports = await _repo.GetByMedicineAndPatientAsync(medicine, patientId);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(dtos);
         }
 
-        [HttpGet("search/patient-name")]
-        public async Task<IActionResult> GetByPatientName([FromBody] string patientName)
+        [HttpGet("patient/name/{patientName}")]
+        public async Task<IActionResult> GetByPatientName(string patientName)
         {
             var reports = await _repo.GetByPatientNameAsync(patientName);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(dtos);
         }
 
-        [HttpGet("search/doctor-name")]
-        public async Task<IActionResult> GetByDoctorName([FromBody] string doctorName)
+        [HttpGet("doctor/name/{doctorName}")]
+        public async Task<IActionResult> GetByDoctorName(string doctorName)
         {
             var reports = await _repo.GetByDoctorNameAsync(doctorName);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(dtos);
         }
 
-        [HttpGet("search/doctor-patient")]
-        public async Task<IActionResult> GetByDoctorNameAndPatientName([FromBody] string doctorName, [FromBody] string patientName)
+        [HttpGet("doctor/name/{doctorName}/patient/name/{patientName}")]
+        public async Task<IActionResult> GetByDoctorNameAndPatientName(string doctorName, string patientName)
         {
             var reports = await _repo.GetByDoctorNameandPatientNameAsync(doctorName, patientName);
             var dtos = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(dtos);
         }
+
         [HttpGet("date/{date}/patient/name/{patientName}")]
         public async Task<IActionResult> GetByDateAndPatientName(DateOnly date, string patientName)
         {
@@ -139,6 +139,7 @@ namespace Safi.Controllers
             var reportsDto = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(reportsDto);
         }
+
         [HttpGet("date/{date}/doctor/name/{doctorName}")]
         public async Task<IActionResult> GetByDateAndDoctorName(DateOnly date, string doctorName)
         {
