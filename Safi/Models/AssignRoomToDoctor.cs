@@ -21,6 +21,6 @@ namespace Safi.Models
         [ForeignKey("DoctorId")]
         public virtual Doctor? Doctor { get; set; }
 
-        public DateTime Time { get; set; }
+        public DateTime Time { get; set; } = DateTime.Now;
     }
 }

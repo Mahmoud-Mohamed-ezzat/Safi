@@ -6,6 +6,7 @@ namespace Safi.Interfaces
     public interface IRoom
     {
         Task<List<RoomDto>> GetAllAsync();
+        Task<List<RoomDto>> GetAllRoomsByTypeAsync(string type);
         Task<RoomDto?> GetByIdAsync(int id);
         Task<RoomDto> CreateAsync(CreateRoomDto dto);
         Task<RoomDto?> UpdateAsync(int id, UpdateRoomDto dto);

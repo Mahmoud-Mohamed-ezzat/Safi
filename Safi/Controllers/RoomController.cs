@@ -22,6 +22,13 @@ namespace Safi.Controllers
             return Ok(roomsDto);
         }
 
+        [HttpGet("type/{type}")]
+        public async Task<IActionResult> GetAllRoomsByType(string type)
+        {
+            var roomsDto = await _repo.GetAllRoomsByTypeAsync(type);
+            return Ok(roomsDto);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {

@@ -27,6 +27,17 @@ namespace Safi.Repositories
             return rooms.Select(r => r.ToRoomDto()).ToList();
         }
 
+        public async Task<List<RoomDto>> GetAllRoomsByTypeAsync(string type)
+        {
+            var rooms = await _context.Rooms
+                .Include(r => r.Department)
+                .Where(r => r.GetType() == typeof(Room) && r.GetType().Name == type)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return rooms.Select(r => r.ToRoomDto()).ToList();
+        }
+
         public async Task<RoomDto?> GetByIdAsync(int id)
         {
             var room = await _context.Rooms
@@ -44,7 +55,7 @@ namespace Safi.Repositories
             {
                 if (!await IsRoomNumberUniqueAsync(dto.Number, dto.DepartmentId))
                 {
-                    throw new RoomNumberAlreadyExistsException(dto.Number, dto.DepartmentId);
+                    throw new InvalidOperationException($"Room number {dto.Number} already exists in department {dto.DepartmentId}");
                 }
                 var room = dto.ToRoom();
 
@@ -77,7 +88,7 @@ namespace Safi.Repositories
 
                 if (!await IsRoomNumberUniqueAsync(dto.Number, dto.DepartmentId, id))
                 {
-                    throw new RoomNumberAlreadyExistsException(dto.Number, dto.DepartmentId);
+                    throw new InvalidOperationException($"Room number {dto.Number} already exists in department {dto.DepartmentId}");
                 }
                 room.Number = dto.Number;
                 room.DepartmentId = dto.DepartmentId;

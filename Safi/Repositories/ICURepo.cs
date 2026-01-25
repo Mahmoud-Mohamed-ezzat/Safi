@@ -42,7 +42,7 @@ namespace Safi.Repositories
             {
                 if (!await IsRoomNumberUniqueAsync(dto.Number, dto.DepartmentId))
                 {
-                    throw new RoomNumberAlreadyExistsException(dto.Number, dto.DepartmentId);
+                    throw new InvalidOperationException($"ICU room number {dto.Number} already exists in department {dto.DepartmentId}");
                 }
                 var icu = dto.ToICU();
 
@@ -72,7 +72,7 @@ namespace Safi.Repositories
 
                 if (!await IsRoomNumberUniqueAsync(dto.Number, dto.DepartmentId, id))
                 {
-                    throw new RoomNumberAlreadyExistsException(dto.Number, dto.DepartmentId);
+                    throw new InvalidOperationException($"ICU room number {dto.Number} already exists in department {dto.DepartmentId}");
                 }
 
                 icu.Number = dto.Number;
