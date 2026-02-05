@@ -44,6 +44,10 @@ namespace Safi.Controllers
             }
 
             var report = await _repo.CreateAsync(dto);
+            if (report == null)
+            {
+                return NotFound();
+            }
             return CreatedAtAction(nameof(GetById), new { id = report.Id }, report.ToReportDoctorToPatientDto());
         }
 

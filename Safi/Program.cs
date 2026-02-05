@@ -62,6 +62,7 @@ builder.Services.AddScoped<IRoom, RoomRepo>();
 builder.Services.AddScoped<IICU, ICURepo>();
 builder.Services.AddScoped<IEmergency, EmergencyRepo>();
 builder.Services.AddScoped<IAssignRoomToDoctor, AssignRoomToDoctorRepo>();
+builder.Services.AddScoped<IAppointmentToRoom, AppointmentToRoomRepo>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -81,4 +82,6 @@ app.UseStaticFiles();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ReservationHub>("/reservationHub");
+app.MapHub<AppointmentHub>("/appointmentHub");
+app.MapHub<MessageHub>("/messageHub");
 app.Run();

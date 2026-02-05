@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Safi.Models;
 
@@ -11,9 +12,11 @@ using Safi.Models;
 namespace Safi.Migrations
 {
     [DbContext(typeof(SafiContext))]
-    partial class SafiContextModelSnapshot : ModelSnapshot
+    [Migration("20260203234336_EditRoomsToReservation")]
+    partial class EditRoomsToReservation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -218,9 +221,6 @@ namespace Safi.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("DoctorId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<DateTime?>("EndTime")
                         .HasColumnType("datetime2");
 
@@ -236,8 +236,6 @@ namespace Safi.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedBy");
-
-                    b.HasIndex("DoctorId");
 
                     b.HasIndex("PatientId");
 
@@ -257,7 +255,7 @@ namespace Safi.Migrations
                     b.Property<string>("DoctorId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateOnly?>("EndDate")
+                    b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
                     b.Property<TimeOnly>("End_Time")
@@ -313,39 +311,6 @@ namespace Safi.Migrations
                             Id = 3,
                             Name = "Liver"
                         });
-                });
-
-            modelBuilder.Entity("Safi.Models.Message", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsEdited")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MessageContent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReceiverId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("SenderId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReceiverId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("Safi.Models.RefreshToken", b =>
@@ -765,10 +730,6 @@ namespace Safi.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedBy");
 
-                    b.HasOne("Safi.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId");
-
                     b.HasOne("Safi.Models.Patient", "Patient")
                         .WithMany("Appointments")
                         .HasForeignKey("PatientId");
@@ -778,8 +739,6 @@ namespace Safi.Migrations
                         .HasForeignKey("RoomId");
 
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("Doctor");
 
                     b.Navigation("Patient");
 
@@ -799,21 +758,6 @@ namespace Safi.Migrations
                     b.Navigation("Doctor");
 
                     b.Navigation("Room");
-                });
-
-            modelBuilder.Entity("Safi.Models.Message", b =>
-                {
-                    b.HasOne("Safi.Models.User", "Receiver")
-                        .WithMany()
-                        .HasForeignKey("ReceiverId");
-
-                    b.HasOne("Safi.Models.User", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId");
-
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("Safi.Models.RefreshToken", b =>
