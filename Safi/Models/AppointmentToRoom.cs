@@ -12,6 +12,10 @@ namespace Safi.Models
         public string ?CreatedBy { get; set; } // UserId who created
         [ForeignKey("CreatedBy")]
         public virtual User ?CreatedByUser { get; set; }
+         
+        public string? DoctorId { get; set; } // DoctorId who primary Doctor
+        [ForeignKey("DoctorId")]
+        public virtual Doctor? Doctor { get; set; }
 
         public string? PatientId { get; set; }
         [ForeignKey("PatientId")]
@@ -23,8 +27,5 @@ namespace Safi.Models
 
         public DateTime? StartTime { get; set; }=DateTime.UtcNow;
         public DateTime? EndTime { get; set; }
-
-        // Navigation properties
-        public virtual ICollection<AssignRoomToDoctor> AssignRoomToDoctors { get; set; } = new List<AssignRoomToDoctor>();
     }
 }

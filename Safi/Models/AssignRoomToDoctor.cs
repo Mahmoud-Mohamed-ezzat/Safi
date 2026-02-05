@@ -13,14 +13,18 @@ namespace Safi.Models
         [ForeignKey("RoomId")]
         public virtual Room? Room { get; set; }
 
-        public int? AppointmentToRoomId { get; set; }
-        [ForeignKey("AppointmentToRoomId")]
-        public virtual AppointmentToRoom? AppointmentToRoom { get; set; }
+        //public int? AppointmentToRoomId { get; set; }
+        //[ForeignKey("AppointmentToRoomId")]
+        //public virtual AppointmentToRoom? AppointmentToRoom { get; set; }
 
         public string? DoctorId { get; set; }
         [ForeignKey("DoctorId")]
         public virtual Doctor? Doctor { get; set; }
 
-        public DateTime Time { get; set; } = DateTime.Now;
+        public DateOnly StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
+        //Daily Shift
+        public TimeOnly Start_Time { get; set; } = new TimeOnly();
+        public TimeOnly End_Time { get; set; } = new TimeOnly();
     }
 }

@@ -86,11 +86,6 @@ namespace Safi.Controllers
             return Ok(assignments);
         }
 
-        [HttpGet("date/{date}/patient/{patientId}")]
-        public async Task<IActionResult> GetByDateAndPatientId(DateOnly date, string patientId)
-        {
-            var assignments = await _repo.GetByDateAndPatientIdAsync(date, patientId);
-            return Ok(assignments);
-        }
+
     }
 }

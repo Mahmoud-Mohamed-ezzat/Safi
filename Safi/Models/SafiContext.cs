@@ -34,6 +34,7 @@ namespace Safi.Models
         public DbSet<ReportDoctorToPatient> ReportDoctorToPatients { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; } 
         public DbSet<TimeAvailableOfDoctor> TimeAvailableOfDoctors { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
