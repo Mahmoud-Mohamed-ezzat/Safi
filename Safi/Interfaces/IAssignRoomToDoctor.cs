@@ -13,8 +13,7 @@ namespace Safi.Interfaces
         Task<List<AssignRoomToDoctorDto>> GetByRoomIdAsync(int roomId);
         Task<List<AssignRoomToDoctorDto>> GetByDateAsync(DateOnly date);
         Task<List<AssignRoomToDoctorDto>> GetByDateAndDoctorIdAsync(DateOnly date, string doctorId);
-        Task<List<AssignRoomToDoctorDto>> GetByDateAndPatientIdAsync(DateOnly date, string patientId);
         Task<bool> IsRoomAssignedToSameDoctorAsync(int roomId, string doctorId);
-        Task<bool> IsRoomAvailableAsync(int roomId);
+        Task<bool> IsRoomExistAsync(int roomId);
     }
 }

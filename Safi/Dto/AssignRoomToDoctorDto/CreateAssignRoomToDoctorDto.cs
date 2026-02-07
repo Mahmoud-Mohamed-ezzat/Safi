@@ -8,6 +8,7 @@ namespace Safi.Dto.AssignRoomToDoctorDto
         public int RoomId { get; set; }
         [Required]
         public string DoctorId { get; set; } = string.Empty;
-        public int? AppointmentToRoomId { get; set; }
+        public TimeOnly Start_Time { get; set; }
+        public TimeOnly End_Time { get; set; }
     }
 }

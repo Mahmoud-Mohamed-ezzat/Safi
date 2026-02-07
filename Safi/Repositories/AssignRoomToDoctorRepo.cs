@@ -70,7 +70,7 @@ namespace Safi.Repositories
                     throw new InvalidOperationException($"Room {dto.RoomId} is already assigned to doctor {dto.DoctorId}.");
                 }
 
-                var assignment = dto.ToAssignRoomToDoctor();
+                var assignment = dto.ToCreateAssignRoomToDoctorDto();
                 await _context.AssignRoomToDoctors.AddAsync(assignment);
                 await _context.SaveChangesAsync();
 
@@ -146,7 +146,7 @@ namespace Safi.Repositories
                 // Partial Update Logic
                 if (dto.RoomId.HasValue) assignment.RoomId = dto.RoomId.Value;
                 if (!string.IsNullOrEmpty(dto.DoctorId)) assignment.DoctorId = dto.DoctorId;
-                if (dto.AppointmentToRoomId.HasValue) assignment.AppointmentToRoomId = dto.AppointmentToRoomId.Value;
+
 
                 await _context.SaveChangesAsync();
 
@@ -174,7 +174,7 @@ namespace Safi.Repositories
         {
             var assignment = await _context.AssignRoomToDoctors.FirstOrDefaultAsync(a => a.Id == id);
             if (assignment == null) return false;
-
+            assignment.EndDate = DateOnly.FromDateTime(DateTime.Now);
             _context.AssignRoomToDoctors.Remove(assignment);
             await _context.SaveChangesAsync();
             return true;
@@ -209,7 +209,7 @@ namespace Safi.Repositories
             var assignments = await _context.AssignRoomToDoctors
                 .Include(a => a.Room)
                 .Include(a => a.Doctor)
-                .Where(a => DateOnly.FromDateTime(a.Time) == date)
+                .Where(a => a.StartDate <= date && a.EndDate >= date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -221,50 +221,24 @@ namespace Safi.Repositories
             var assignments = await _context.AssignRoomToDoctors
                 .Include(a => a.Room)
                 .Include(a => a.Doctor)
-                .Where(a => DateOnly.FromDateTime(a.Time) == date && a.DoctorId == doctorId)
+                .Where(a => a.StartDate <= date && a.EndDate >= date && a.DoctorId == doctorId)
                 .AsNoTracking()
                 .ToListAsync();
 
             return assignments.Select(a => a.ToAssignRoomToDoctorDto()).ToList();
         }
 
-        public async Task<List<AssignRoomToDoctorDto>> GetByDateAndPatientIdAsync(DateOnly date, string patientId)
+
+        public async Task<bool> IsRoomAssignedToSameDoctorAsync(int roomId, string doctorId)
         {
-            // Assuming we need to join with AppointmentToRoom -> Appointment -> Patient
-            // Or if AppointmentToRoom has PatientId directly or via relationship
-            // The model AssignRoomToDoctor has AppointmentToRoomId.
-            // Let's assume navigating through AppointmentToRoom is possible.
-            // Wait, I need to check AppointmentToRoom model to know how to link to Patient.
-            // I'll take a safe guess for now or better, I should have checked AppointmentToRoom model.
-            // Let's check AppointmentToRoom structure first if I can, but I'll implement based on assumption and fix if needed.
-            // Checking active documents, I see d:\Safi\Safi\Safi\Models\AppointmentToRoom.cs is open!
-            // I should view it to be sure.
+            return await _context.AssignRoomToDoctors
+                .AnyAsync(a => a.RoomId == roomId && a.DoctorId == doctorId);
+        }
 
-            // For now I will write this method with a TODO or simplified version and check the model in next step to correct it if needed.
-            // Or better, I'll assume AppointmentToRoom has navigation to Appointment which has PatientId.
-
-            var query = _context.AssignRoomToDoctors
-                .Include(a => a.Room)
-                .Include(a => a.Doctor)
-                .Include(a => a.AppointmentToRoom)
-                .Where(a => DateOnly.FromDateTime(a.Time) == date);
-
-            // This part is tricky without knowing exact navigation. 
-            // I'll implement a basic filter first and refine in next step after verifying AppointmentToRoom model.
-
-                        return new List<AssignRoomToDoctorDto>();
-                    }
-
-                    public async Task<bool> IsRoomAssignedToSameDoctorAsync(int roomId, string doctorId)
-                    {
-                        return await _context.AssignRoomToDoctors
-                            .AnyAsync(a => a.RoomId == roomId && a.DoctorId == doctorId);
-                    }
-
-                    public async Task<bool> IsRoomAvailableAsync(int roomId)
-                    {
-                        return !await _context.AssignRoomToDoctors
-                            .AnyAsync(a => a.RoomId == roomId);
-                    }
-                }
-            }
+        public async Task<bool> IsRoomExistAsync(int roomId)
+        {
+            return !await _context.AssignRoomToDoctors
+                .AnyAsync(a => a.RoomId == roomId);
+        }
+    }
+}

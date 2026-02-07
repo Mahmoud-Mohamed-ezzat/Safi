@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Hub Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        .input-group {
+            margin: 10px 0;
+        }
+
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 250px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: white;
+        }
+
+        .log-entry.success {
+            border-left-color: #28a745;
+        }
+
+        .log-entry.error {
+            border-left-color: #dc3545;
+        }
+
+        .room-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .room-card {
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        .room-card.available {
+            border-color: #28a745;
+        }
+
+        .room-card.busy {
+            border-color: #dc3545;
+            opacity: 0.6;
+        }
+
+        .doctor-list {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🏥 Appointment Hub Test Page</h1>
+
+    <div class="container">
+        <h2>Connection Status</h2>
+        <div id="status" class="status disconnected">Disconnected</div>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+    </div>
+
+    <div class="container">
+        <h2>Join Department Room Group</h2>
+        <div class="input-group">
+            <label>Department ID:</label>
+            <input type="number" id="departmentId" value="1" />
+        </div>
+        <div class="input-group">
+            <label>Room Type:</label>
+            <select id="roomType">
+                <option value="Room">Room</option>
+                <option value="ICU">ICU</option>
+                <option value="Emergency">Emergency</option>
+            </select>
+        </div>
+        <button onclick="joinGroup()">Join Group</button>
+        <button onclick="leaveGroup()">Leave Group</button>
+        <button onclick="getAvailableRooms()">Get Available Rooms</button>
+    </div>
+
+    <div class="container">
+        <h2>Block Room Slot</h2>
+        <div class="input-group">
+            <label>Room ID:</label>
+            <input type="number" id="blockRoomId" />
+        </div>
+        <div class="input-group">
+            <label>User ID:</label>
+            <input type="text" id="userId" value="user123" />
+        </div>
+        <button onclick="blockRoom()">Block Room</button>
+    </div>
+
+    <div class="container" id="appointmentSection">
+        <h2>Create Appointment</h2>
+        <div class="input-group">
+            <label>Created By:</label>
+            <input type="text" id="createdBy" value="reception1" />
+        </div>
+        <div class="input-group">
+            <label>Patient ID:</label>
+            <input type="text" id="patientId" value="patient123" />
+        </div>
+        <div class="input-group">
+            <label>Room ID:</label>
+            <input type="number" id="appointmentRoomId" readonly />
+        </div>
+        <div class="input-group">
+            <label>Primary Doctor:</label>
+            <select id="primaryDoctorId">
+                <option value="">Block a room first to see doctors</option>
+            </select>
+        </div>
+        <button onclick="createAppointment()">Create Appointment</button>
+    </div>
+
+    <div class="container">
+        <h2>Release Room</h2>
+        <div class="input-group">
+            <label>Room ID:</label>
+            <input type="number" id="releaseRoomId" />
+        </div>
+        <div class="input-group">
+            <label>Doctor ID:</label>
+            <input type="text" id="releaseDoctorId" />
+        </div>
+        <div class="input-group">
+            <label>Room Type:</label>
+            <select id="releaseRoomType">
+                <option value="Room">Room</option>
+                <option value="ICU">ICU</option>
+                <option value="Emergency">Emergency</option>
+            </select>
+        </div>
+        <button onclick="releaseRoom()">Release Room</button>
+    </div>
+
+    <div class="container">
+        <h2>Available Rooms</h2>
+        <div id="roomsList" class="room-list"></div>
+    </div>
+
+    <div class="container">
+        <h2>Event Log</h2>
+        <button onclick="clearLog()">Clear Log</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let connection = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            if (connected) {
+                statusDiv.textContent = 'Connected';
+                statusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+
+        async function connect() {
+            try {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("https://localhost:7250/appointmentHub")
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                // Register event handlers
+                connection.on("JoinedGroup", (data) => {
+                    log(`✅ Joined group: ${data.groupName} - ${data.message}`, 'success');
+                });
+
+                connection.on("LeftGroup", (data) => {
+                    log(`👋 Left group: ${data.groupName} - ${data.message}`, 'success');
+                });
+
+                connection.on("ReceiveAvailableRooms", (data) => {
+                    if (data.success) {
+                        log(`📋 Received ${data.rooms.length} available rooms for ${data.roomType} in department ${data.departmentId}`, 'success');
+                        displayRooms(data.rooms);
+                    } else {
+                        log(`❌ Error: ${data.message}`, 'error');
+                    }
+                });
+
+                connection.on("BlockRoomResult", (data) => {
+                    if (data.success) {
+                        log(`🔒 Room ${data.roomNumber} blocked successfully. Assigned doctors: ${data.assignedDoctors.length}`, 'success');
+                        console.log('Assigned Doctors:', data.assignedDoctors);
+
+                        // Auto-populate doctor selection
+                        const doctorSelect = document.getElementById('primaryDoctorId');
+                        doctorSelect.innerHTML = '<option value="">Select a Doctor</option>';
+                        data.assignedDoctors.forEach(d => {
+                            const option = document.createElement('option');
+                            option.value = d.doctorId;
+                            option.textContent = `${d.doctorName} (ID: ${d.doctorId})`;
+                            doctorSelect.appendChild(option);
+                        });
+
+                        // Set the room ID for appointment creation
+                        document.getElementById('appointmentRoomId').value = data.roomId;
+
+                        // Show modal or focus on appointment section
+                        document.getElementById('appointmentSection').style.backgroundColor = '#e8f5e9';
+                        alert(`Room ${data.roomNumber} blocked! Please select a doctor to proceed.`);
+                    } else {
+                        log(`❌ Block failed: ${data.message}`, 'error');
+                    }
+                });
+
+                connection.on("RoomStatusChanged", (data) => {
+                    log(`🔄 Room ${data.roomNumber} status changed to ${data.status} - ${data.message}`, 'info');
+
+                    // Directly update the visual state of the room if it exists in the DOM
+                    const roomCard = document.querySelector(`.room-card[onclick*="blockRoom(${data.roomId}"]`);
+                    if (roomCard) {
+                        if (data.status === 'Busy') {
+                            roomCard.className = 'room-card busy';
+                            roomCard.onclick = null; // Disable click
+                            // Show indicator
+                            const indicator = roomCard.querySelector('div');
+                            if (indicator) indicator.textContent = '⛔ Busy';
+                        } else if (data.status === 'Available') {
+                            roomCard.className = 'room-card available';
+                            // Restore click handler - need to reconstruct the call
+                            roomCard.setAttribute('onclick', `blockRoom(${data.roomId}, '${data.roomType}', '${document.getElementById('createdById').value}')`);
+                            const indicator = roomCard.querySelector('div');
+                            if (indicator) indicator.textContent = '✅ Available';
+                        }
+                    }
+
+                    // Also refresh the full list to be sure
+                    getAvailableRooms();
+                });
+
+                connection.on("AppointmentCreationResult", (data) => {
+                    if (data.success) {
+                        log(`✅ Appointment created successfully!`, 'success');
+                        console.log('Appointment:', data.appointment);
+                    } else {
+                        log(`❌ Appointment creation failed: ${data.message}`, 'error');
+                    }
+                });
+
+                connection.on("AppointmentCreated", (data) => {
+                    log(`📅 New appointment created in room ${data.roomNumber} for patient ${data.patientId}`, 'info');
+                });
+
+                connection.on("ReleaseRoomResult", (data) => {
+                    if (data.success) {
+                        log(`🔓 Room released successfully`, 'success');
+                    } else {
+                        log(`❌ Release failed: ${data.message}`, 'error');
+                    }
+                });
+
+                await connection.start();
+                log('🟢 Connected to AppointmentHub', 'success');
+                updateStatus(true);
+            } catch (err) {
+                log(`❌ Connection error: ${err}`, 'error');
+                console.error(err);
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                await connection.stop();
+                log('🔴 Disconnected from AppointmentHub', 'info');
+                updateStatus(false);
+            }
+        }
+
+        async function joinGroup() {
+            const departmentId = parseInt(document.getElementById('departmentId').value);
+            const roomType = document.getElementById('roomType').value;
+
+            try {
+                await connection.invoke("JoinDepartmentRoomGroup", departmentId, roomType);
+                log(`Joining ${roomType}s_${departmentId}...`, 'info');
+            } catch (err) {
+                log(`❌ Error joining group: ${err}`, 'error');
+            }
+        }
+
+        async function leaveGroup() {
+            const departmentId = parseInt(document.getElementById('departmentId').value);
+            const roomType = document.getElementById('roomType').value;
+
+            try {
+                await connection.invoke("LeaveDepartmentRoomGroup", departmentId, roomType);
+                log(`Leaving ${roomType}s_${departmentId}...`, 'info');
+            } catch (err) {
+                log(`❌ Error leaving group: ${err}`, 'error');
+            }
+        }
+
+        async function getAvailableRooms() {
+            const departmentId = parseInt(document.getElementById('departmentId').value);
+            const roomType = document.getElementById('roomType').value;
+
+            try {
+                await connection.invoke("GetAvailableRoomsByDepartment", departmentId, roomType);
+                log(`Requesting available ${roomType}s for department ${departmentId}...`, 'info');
+            } catch (err) {
+                log(`❌ Error getting rooms: ${err}`, 'error');
+            }
+        }
+
+        async function blockRoom(id, type) {
+            const roomId = id || parseInt(document.getElementById('blockRoomId').value);
+            const roomType = type || document.getElementById('roomType').value;
+
+            // Sync UI inputs if triggered from card
+            if (id) document.getElementById('blockRoomId').value = id;
+
+            try {
+                if (!roomId || isNaN(roomId)) {
+                    log('❌ Error: Invalid Room ID', 'error');
+                    return;
+                }
+                await connection.invoke("BlockRoomSlot", roomId, roomType);
+                log(`Blocking room ${roomId}...`, 'info');
+            } catch (err) {
+                log(`❌ Error blocking room: ${err}`, 'error');
+            }
+        }
+
+        async function createAppointment() {
+            const roomType = document.getElementById('roomType').value;
+            const dto = {
+                createdBy: document.getElementById('createdBy').value,
+                patientId: document.getElementById('patientId').value,
+                roomId: parseInt(document.getElementById('appointmentRoomId').value),
+                primaryDoctorId: document.getElementById('primaryDoctorId').value,
+                startTime: new Date().toISOString(),
+                endTime: null
+            };
+
+            try {
+                await connection.invoke("CreateAppointmentWithDoctor", dto, roomType);
+                log(`Creating appointment...`, 'info');
+            } catch (err) {
+                log(`❌ Error creating appointment: ${err}`, 'error');
+            }
+        }
+
+        async function releaseRoom() {
+            const roomId = parseInt(document.getElementById('releaseRoomId').value);
+            const roomType = document.getElementById('releaseRoomType').value;
+            const doctorId = document.getElementById('releaseDoctorId').value;
+
+            const reportDto = {
+                id: 0, // Server will fill this
+                report: "Released via test page",
+                medicines: [],
+                endTime: new Date().toISOString(),
+                CreatedBy: doctorId
+            };
+
+            try {
+                await connection.invoke("ReleaseRoom", roomId, roomType, reportDto);
+                log(`Releasing room ${roomId}...`, 'info');
+            } catch (err) {
+                log(`❌ Error releasing room: ${err}`, 'error');
+            }
+        }
+
+        function displayRooms(rooms) {
+            const roomsList = document.getElementById('roomsList');
+            roomsList.innerHTML = '';
+
+            if (rooms.length === 0) {
+                roomsList.innerHTML = '<p>No available rooms found</p>';
+                return;
+            }
+
+            rooms.forEach(room => {
+                const card = document.createElement('div');
+                const isAvailable = room.status === 'Available';
+                card.className = `room-card ${room.status.toLowerCase()}`;
+                // Set ID for easy lookup
+                card.id = `room-card-${room.id}`;
+
+                let actionHtml = '';
+                if (isAvailable) {
+                    card.setAttribute('onclick', `blockRoom(${room.id}, '${room.roomType}', '${document.getElementById('userId').value}')`);
+                    card.style.cursor = 'pointer';
+                    actionHtml = '<div style="margin-top:10px; color:green">✅ Click to Block</div>';
+                } else {
+                    card.onclick = null;
+                    card.style.cursor = 'not-allowed';
+                    actionHtml = '<div style="margin-top:10px; color:red">⛔ Busy (Blocked)</div>';
+                }
+
+                card.innerHTML = `
+                    <h3>${room.roomType} #${room.number}</h3>
+                    <p><strong>Department:</strong> ${room.departmentName}</p>
+                    <div class="status-indicator">${actionHtml}</div>
+                    <div class="doctor-list" style="display:${room.assignedDoctors.length ? 'block' : 'none'}">
+                        <strong>Assigned Doctors:</strong>
+                        ${room.assignedDoctors.map(d => `<div>• ${d.doctorName}</div>`).join('')}
+                    </div>
+                `;
+                roomsList.appendChild(card);
+            });
+        }
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            log('Page loaded. Click Connect to start.', 'info');
+        });
+    </script>
+</body>
+
+</html>
