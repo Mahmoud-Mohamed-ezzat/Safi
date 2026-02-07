@@ -63,6 +63,7 @@ builder.Services.AddScoped<IICU, ICURepo>();
 builder.Services.AddScoped<IEmergency, EmergencyRepo>();
 builder.Services.AddScoped<IAssignRoomToDoctor, AssignRoomToDoctorRepo>();
 builder.Services.AddScoped<IAppointmentToRoom, AppointmentToRoomRepo>();
+builder.Services.AddScoped<IStatisticsRepo, StatisticsRepo>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

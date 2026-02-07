@@ -4,6 +4,7 @@ namespace Safi.Dto.AssignRoomToDoctorDto
     {
         public int? RoomId { get; set; }
         public string? DoctorId { get; set; }
-        public int? AppointmentToRoomId { get; set; }
+        public TimeOnly Start_Time { get; set; }
+        public TimeOnly End_Time { get; set; }
     }
 }

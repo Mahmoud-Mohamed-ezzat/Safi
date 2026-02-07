@@ -14,19 +14,22 @@ namespace Safi.Mapper
                 RoomNumber = assign.Room?.Number,
                 DoctorId = assign.DoctorId,
                 DoctorName = assign.Doctor?.Name,
-                AppointmentToRoomId = assign.AppointmentToRoomId,
-                Time = assign.Time
+                Start_Time = assign.Start_Time,
+                End_Time = assign.End_Time,
+                start_Date = assign.StartDate,
+                End_Date = assign.EndDate
             };
         }
 
-        public static AssignRoomToDoctor ToAssignRoomToDoctor(this CreateAssignRoomToDoctorDto dto)
+        public static AssignRoomToDoctor ToCreateAssignRoomToDoctorDto(this CreateAssignRoomToDoctorDto dto)
         {
             return new AssignRoomToDoctor
             {
                 RoomId = dto.RoomId,
                 DoctorId = dto.DoctorId,
-                AppointmentToRoomId = dto?.AppointmentToRoomId,
-                Time = DateTime.Now // Or should this come from DTO? Defaulting to Now as per Model default
+                Start_Time= dto.Start_Time,
+                End_Time = dto.End_Time,
+                StartDate= DateOnly.FromDateTime(DateTime.Now) // Assuming the assignment starts today
             };
         }
     }
