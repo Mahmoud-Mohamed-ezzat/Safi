@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Safi.Dto.EmailDto;
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Interfaces;
 using Safi.Mapper;
+using Microsoft.AspNetCore.Identity;
+using Safi.Models;
 
 namespace Safi.Controllers
 {
@@ -10,10 +13,13 @@ namespace Safi.Controllers
     public class ReportDoctorToPatientController : ControllerBase
     {
         private readonly IReportDoctorToPatient _repo;
+        private readonly IEmailService _emailService;
+        private readonly UserManager<User> _userManager;
 
-        public ReportDoctorToPatientController(IReportDoctorToPatient repo)
+        public ReportDoctorToPatientController(IReportDoctorToPatient repo, IEmailService emailService)
         {
             _repo = repo;
+            _emailService = emailService;
         }
 
         [HttpGet]
@@ -48,6 +54,32 @@ namespace Safi.Controllers
             {
                 return NotFound();
             }
+            await _userManager.SetEmailAsync(report.Patient, report.Patient.Email);
+            // Send email notification to patient if medicines were prescribed
+            if (report.Patient != null && !string.IsNullOrEmpty(report.Patient.Email) &&
+                report.Medicines != null && report.Medicines.Any())
+            {
+                var medicinesList = string.Join("</li><li>", report.Medicines);
+                await _emailService.SendEmailAsync(new SendEmailDto
+                {
+                    ToEmail = report.Patient.Email,
+                    Subject = "New Prescription from Your Doctor",
+                    Body = $@"
+                        <h2>New Prescription Notification</h2>
+                        <p>Dear {report.Patient.Name},</p>
+                        <p>Dr. {report.Doctor?.Name ?? "Your doctor"} has prescribed new medicines for you.</p>
+                        <p><strong>Prescribed Medicines:</strong></p>
+                        <ul>
+                            <li>{medicinesList}</li>
+                        </ul>
+                        <p><strong>Report Details:</strong></p>
+                        <p>{report.Report}</p>
+                        <p><strong>Date:</strong> {report.CreatedAt:MMMM dd, yyyy}</p>
+                        <p>Please consult with your doctor if you have any questions about your prescription.</p>
+                        <p>Best regards,<br/>Safi Hospital Team</p>"
+                });
+            }
+
             return CreatedAtAction(nameof(GetById), new { id = report.Id }, report.ToReportDoctorToPatientDto());
         }
 

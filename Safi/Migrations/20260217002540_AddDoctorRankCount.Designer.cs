@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Safi.Models;
 
@@ -11,9 +12,11 @@ using Safi.Models;
 namespace Safi.Migrations
 {
     [DbContext(typeof(SafiContext))]
-    partial class SafiContextModelSnapshot : ModelSnapshot
+    [Migration("20260217002540_AddDoctorRankCount")]
+    partial class AddDoctorRankCount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

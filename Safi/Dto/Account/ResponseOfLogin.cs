@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-
 namespace Safi.Dto.Account
 {
     public class ResponseOfLogin

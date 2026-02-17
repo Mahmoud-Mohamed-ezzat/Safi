@@ -20,5 +20,6 @@ namespace Safi.Interfaces
         Task<List<ReportDoctorToPatient>> GetByPatientNameAsync(string patientName);
         Task<List<ReportDoctorToPatient>> GetByDoctorNameAsync(string doctorName);
         Task<List<ReportDoctorToPatient>> GetByDoctorNameandPatientNameAsync(string doctorName,string patientName);
+        Task<List<ReportDoctorToPatient>> GetAllReportwroteWhilePatientAppointsToRoom(string PatientId,int  AppointmentToRoomId);
     }
 }

@@ -15,37 +15,45 @@ namespace Safi.Repositories
             _context = context;
         }
 
+        // Helper method to get query with all navigation properties included
+        private IQueryable<ReportDoctorToPatient> GetQueryWithIncludes()
+        {
+            return _context.ReportDoctorToPatients
+                .Include(r => r.Patient)
+                .Include(r => r.Doctor);
+        }
+
+        // Helper method to convert DateTime to DateOnly
+        private static DateOnly ToDateOnly(DateTime dateTime)
+        {
+            return DateOnly.FromDateTime(dateTime);
+        }
+
         public async Task<List<ReportDoctorToPatient>> GetAllAsync()
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
+            return await GetQueryWithIncludes()
                 .AsNoTracking()
                 .ToListAsync();
         }
-        public async Task<List<ReportDoctorToPatient>> GetByDateAsyncandNameOfDoctor(DateOnly date,string doctorName){
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
-                .Where(r => DateOnly.FromDateTime(r.CreatedAt) == date && r.Doctor.Name.Contains(doctorName))
+        public async Task<List<ReportDoctorToPatient>> GetByDateAsyncandNameOfDoctor(DateOnly date, string doctorName)
+        {
+            return await GetQueryWithIncludes()
+                .Where(r => r.Doctor != null && r.Doctor.Name != null &&
+                           ToDateOnly(r.CreatedAt) == date && r.Doctor.Name.Contains(doctorName))
                 .ToListAsync();
         }
         public async Task<ReportDoctorToPatient?> GetByIdAsync(int id)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
+            return await GetQueryWithIncludes()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
         public async Task<List<ReportDoctorToPatient>> GetByDateAsync(DateOnly date)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
-                .Where(r => DateOnly.FromDateTime(r.CreatedAt) == date)
+            return await GetQueryWithIncludes()
+                .Where(r => ToDateOnly(r.CreatedAt) == date)
         .ToListAsync();
-}
+        }
         public async Task<ReportDoctorToPatient> CreateAsync(CreateReportDoctorToPatientDto dto)
         {
             var report = dto.ToReportDoctorToPatient();
@@ -85,72 +93,70 @@ namespace Safi.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
-        public async Task<List<ReportDoctorToPatient>> GetByDateAsyncandNameOfPatient(DateOnly date,string patientName){
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
-                .Where(r => DateOnly.FromDateTime(r.CreatedAt) == date && r.Patient.Name.Contains(patientName))
+        public async Task<List<ReportDoctorToPatient>> GetByDateAsyncandNameOfPatient(DateOnly date, string patientName)
+        {
+            return await GetQueryWithIncludes()
+                .Where(r => r.Patient != null && r.Patient.Name != null &&
+                           ToDateOnly(r.CreatedAt) == date && r.Patient.Name.Contains(patientName))
                 .ToListAsync();
         }
 
         public async Task<List<ReportDoctorToPatient>> GetByPatientIdAsync(string patientId)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
+            return await GetQueryWithIncludes()
                 .Where(r => r.PatientId == patientId)
                 .ToListAsync();
         }
 
         public async Task<List<ReportDoctorToPatient>> GetByDoctorIdAsync(string doctorId)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
+            return await GetQueryWithIncludes()
                 .Where(r => r.DoctorId == doctorId)
                 .ToListAsync();
         }
         public async Task<List<ReportDoctorToPatient>> GetByDoctorIdAndDateAsync(string doctorId, DateOnly date)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
-                .Where(r => r.DoctorId == doctorId && DateOnly.FromDateTime(r.CreatedAt) == date)
+            return await GetQueryWithIncludes()
+                .Where(r => r.DoctorId == doctorId && ToDateOnly(r.CreatedAt) == date)
                 .ToListAsync();
         }
         public async Task<List<ReportDoctorToPatient>> GetByMedicineAndPatientAsync(string medicine, string patientId)
         {
             // Optimized to filter in the database using EF Core's primitive collection support
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
+            return await GetQueryWithIncludes()
                 .Where(r => r.PatientId == patientId && r.Medicines != null && r.Medicines.Contains(medicine))
                 .ToListAsync();
         }
         public async Task<List<ReportDoctorToPatient>> GetByPatientNameAsync(string patientName)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Patient)
-                .Include(r => r.Doctor)
+            return await GetQueryWithIncludes()
                 .Where(r => r.Patient != null && r.Patient.Name != null && r.Patient.Name.Contains(patientName))
                 .ToListAsync();
         }
         public async Task<List<ReportDoctorToPatient>> GetByDoctorNameAsync(string doctorName)
         {
-            return await _context.ReportDoctorToPatients
-                .Include(r => r.Doctor)
-                .Include(r => r.Patient)
+            return await GetQueryWithIncludes()
                 .Where(r => r.Doctor != null && r.Doctor.Name != null && r.Doctor.Name.Contains(doctorName))
                 .ToListAsync();
         }
         public async Task<List<ReportDoctorToPatient>> GetByDoctorNameandPatientNameAsync(string doctorName, string patientName)
         {
-            return await _context.ReportDoctorToPatients
-               .Include(r => r.Doctor)
-               .Include(r => r.Patient)
+            return await GetQueryWithIncludes()
                .Where(r => r.Doctor != null && r.Doctor.Name != null && r.Doctor.Name.Contains(doctorName)
                          && r.Patient != null && r.Patient.Name != null && r.Patient.Name.Contains(patientName))
                .ToListAsync();
+        }
+
+        public async Task<List<ReportDoctorToPatient>> GetAllReportwroteWhilePatientAppointsToRoom(string PatientId, int AppointmentToRoomId)
+        {
+            var app = await _context.AppointmentToRooms.Include(a => a.Room).FirstOrDefaultAsync(a => a.Id == AppointmentToRoomId && a.PatientId == PatientId);
+            if (app == null || app.StartTime == null) return null;
+            var reports = await _context.ReportDoctorToPatients
+                 .Include(r => r.Patient)
+                 .Include(r => r.Doctor)
+                 .Where(r => r.PatientId == PatientId && DateOnly.FromDateTime(r.CreatedAt) <= DateOnly.FromDateTime(app.EndTime == null ? DateTime.UtcNow : app.EndTime.Value) && DateOnly.FromDateTime(r.CreatedAt) >= DateOnly.FromDateTime(app.StartTime.Value))
+                 .ToListAsync();
+            return reports;
         }
     }
 }
