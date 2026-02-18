@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Safi.Models;
 
@@ -11,9 +12,11 @@ using Safi.Models;
 namespace Safi.Migrations
 {
     [DbContext(typeof(SafiContext))]
-    partial class SafiContextModelSnapshot : ModelSnapshot
+    [Migration("20260215130246_OptimizeShiftModel")]
+    partial class OptimizeShiftModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -660,9 +663,6 @@ namespace Safi.Migrations
 
                     b.Property<float>("Rank")
                         .HasColumnType("real");
-
-                    b.Property<int>("RankCount")
-                        .HasColumnType("int");
 
                     b.Property<string>("University")
                         .IsRequired()

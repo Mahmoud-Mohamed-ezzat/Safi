@@ -8,7 +8,9 @@ namespace Safi.Dto.AssignRoomToDoctorDto
         public int RoomId { get; set; }
         [Required]
         public string DoctorId { get; set; } = string.Empty;
-        public TimeOnly Start_Time { get; set; }
-        public TimeOnly End_Time { get; set; }
+        [Required]
+        public int ShiftId { get; set; }
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
     }
 }

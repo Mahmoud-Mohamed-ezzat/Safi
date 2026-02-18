@@ -13,10 +13,10 @@ namespace Safi.Models
         public SafiContext(DbContextOptions<SafiContext> options) : base(options) { }
 
         // Users
-        public DbSet<User> Users {get;set;}
+        public DbSet<User> Users { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
-        public DbSet<Staff> Staffs { get; set; } 
+        public DbSet<Staff> Staffs { get; set; }
 
         // Core entities
         public DbSet<Department> Departments { get; set; }
@@ -29,10 +29,11 @@ namespace Safi.Models
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<AppointmentToRoom> AppointmentToRooms { get; set; }
         public DbSet<AssignRoomToDoctor> AssignRoomToDoctors { get; set; }
+        public DbSet<Shift> Shifts { get; set; }
 
         // Reports & extras
         public DbSet<ReportDoctorToPatient> ReportDoctorToPatients { get; set; }
-        public DbSet<RefreshToken> RefreshTokens { get; set; } 
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<TimeAvailableOfDoctor> TimeAvailableOfDoctors { get; set; }
         public DbSet<Message> Messages { get; set; }
 

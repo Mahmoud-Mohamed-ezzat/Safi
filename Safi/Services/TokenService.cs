@@ -27,8 +27,8 @@ namespace Safi.Services
         }
         public async Task<string> CreateJWT(User user)
         {
-           var Role = (await _user.GetRolesAsync(user)).FirstOrDefault();
-           var claims = new List<Claim>{
+            var Role = (await _user.GetRolesAsync(user)).FirstOrDefault();
+            var claims = new List<Claim>{
            new Claim(JwtRegisteredClaimNames.Sub,user.Id),
            new Claim(JwtRegisteredClaimNames.GivenName,user.Name),
            new Claim(JwtRegisteredClaimNames.Email,user.Email),
@@ -56,8 +56,8 @@ namespace Safi.Services
             return new RefreshToken
             {
                 Token = Convert.ToBase64String(randomNumber),
-                ExpiresOn = DateTime.UtcNow.AddMonths(2),
-                CreatedOn = DateTime.UtcNow,
+                ExpiresOn = DateTime.UtcNow.AddMonths(2).ToLocalTime(),
+                CreatedOn = DateTime.UtcNow.ToLocalTime(),
                 UserId = user.Id
             };
         }
@@ -65,7 +65,7 @@ namespace Safi.Services
         {
             var ResponseOfLogin = new ResponseOfLogin();
             var token = await CreateJWT(user);
-            
+
             // Populate common response fields
             ResponseOfLogin.Username = user.Name;
             ResponseOfLogin.IsAuthenticated = true;
@@ -74,7 +74,7 @@ namespace Safi.Services
             ResponseOfLogin.Token = token;
             ResponseOfLogin.Custom_Id = user.Custome_Id;
             ResponseOfLogin.Role = (await _user.GetRolesAsync(user)).FirstOrDefault();
-            
+
             // Handle refresh token (reuse existing or create new)
             if (user.RefreshTokens.Any(t => t.IsActive))
             {
@@ -85,15 +85,15 @@ namespace Safi.Services
             else
             {
                 var refreshToken = await GenerateRefreshToken(user);
-                
+
                 // Save refresh token to database
                 user.RefreshTokens.Add(refreshToken);
                 await _context.SaveChangesAsync();
-                
+
                 ResponseOfLogin.RefreshToken = refreshToken.Token;
-                ResponseOfLogin.RefreshTokenExpiration = refreshToken.ExpiresOn;
+                ResponseOfLogin.RefreshTokenExpiration = refreshToken.ExpiresOn.ToLocalTime();
             }
-            
+
             return ResponseOfLogin;
         }
         public async Task<bool> RevokeRefreshToken()
@@ -102,7 +102,7 @@ namespace Safi.Services
             if (Token == null)
                 return false;
 
-            var user =  _user.Users.SingleOrDefault(u => u.RefreshTokens!.Any(t => t.Token == Token));
+            var user = _user.Users.SingleOrDefault(u => u.RefreshTokens!.Any(t => t.Token == Token));
             if (user == null)
                 return false;
             var refreshToken = user.RefreshTokens!.Single(t => t.Token == Token);

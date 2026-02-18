@@ -14,10 +14,10 @@ namespace Safi.Mapper
                 RoomNumber = assign.Room?.Number,
                 DoctorId = assign.DoctorId,
                 DoctorName = assign.Doctor?.Name,
-                Start_Time = assign.Start_Time,
-                End_Time = assign.End_Time,
-                start_Date = assign.StartDate,
-                End_Date = assign.EndDate
+                StartTime = assign.Shift != null ? assign.Shift.StartTime : default,
+                EndTime = assign.Shift != null ? assign.Shift.EndTime : default,
+                StartDate = assign.StartDate,
+                EndDate = assign.EndDate
             };
         }
 
@@ -27,9 +27,9 @@ namespace Safi.Mapper
             {
                 RoomId = dto.RoomId,
                 DoctorId = dto.DoctorId,
-                Start_Time= dto.Start_Time,
-                End_Time = dto.End_Time,
-                StartDate= DateOnly.FromDateTime(DateTime.Now) // Assuming the assignment starts today
+                ShiftId = dto.ShiftId,
+                StartDate = dto.StartDate != null ? dto.StartDate.Value : DateOnly.FromDateTime(DateTime.Now), // Assuming the assignment starts today
+                EndDate = dto.EndDate != null ? dto.EndDate.Value : null,
             };
         }
     }

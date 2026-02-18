@@ -52,13 +52,13 @@ namespace Safi.Repositories
         public async Task<List<GetDoctorsDto>> GetDoctorsOfDepartment(int id)
         {
             var doctors = await _context.Doctors.Include(d => d.Department).Where(d => d.DepartmentId == id).ToListAsync();
-            var doctorsDto = doctors.Select(d => d.ToGetDoctorsDto()).ToList();
+            var doctorsDto = doctors.Select(d => d.ToGetDoctorsDto()).OrderByDescending(d => d.Rank).ToList();
             return doctorsDto;
         }
         public async Task<List<GetDoctorsDto>> GetDoctorsOfDepartment(string name)
         {
             var doctors = await _context.Doctors.Include(d => d.Department).Where(d => d.Department.Name.ToLower().Contains(name.ToLower())).ToListAsync();
-            var doctorsDto = doctors.Select(d => d.ToGetDoctorsDto()).ToList();
+            var doctorsDto = doctors.Select(d => d.ToGetDoctorsDto()).OrderByDescending(d => d.Rank).ToList();
             return doctorsDto;
         }
         public async Task<List<GetPatientsDto>> GetPatientsOfDepartment(int id)

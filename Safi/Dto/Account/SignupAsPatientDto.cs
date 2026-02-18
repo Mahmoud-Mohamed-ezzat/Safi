@@ -13,6 +13,7 @@ namespace Safi.Dto.Account
         public string Phone { get; set; }
         public bool hassugar { get; set; }
         public bool hasPressure { get; set; }
+        public string History { get; set; }
         public IFormFile? Image { get; set; }
     }
 }

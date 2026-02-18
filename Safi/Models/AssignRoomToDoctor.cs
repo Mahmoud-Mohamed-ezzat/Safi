@@ -18,8 +18,10 @@ namespace Safi.Models
 
         public DateOnly StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
-        //Daily Shift
-        public TimeOnly Start_Time { get; set; } = new TimeOnly();
-        public TimeOnly End_Time { get; set; } = new TimeOnly();
+
+        public int ShiftId { get; set; }
+        [ForeignKey("ShiftId")]
+        public virtual Shift? Shift { get; set; }
+
     }
 }
