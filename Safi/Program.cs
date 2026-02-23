@@ -16,6 +16,17 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 // Add services to the container.
 builder.Services.AddDbContext<SafiContext>(option =>
 {
@@ -81,7 +92,7 @@ builder.Services.AddAuthentication(options =>
     options.UsePkce = true;
 
     // Change this to a DIFFERENT path from your controller endpoint
-    options.CallbackPath = "/signin-google"; // ? Different from your controller route
+    //options.CallbackPath = "/signin-google"; // ? Different from your controller route
 
     options.CorrelationCookie.SameSite = SameSiteMode.Lax;
     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -156,29 +167,31 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseCors("ReactPolicy");
 // Only use HTTPS redirection in production or when HTTPS is available
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.Use(async (context, next) =>
 {
-    var path = context.Request.Path.Value;
+   var path = context.Request.Path.Value;
 
-    if (path.Contains("google"))
-    {
-        Console.WriteLine($"\n=== {context.Request.Method} {path} ===");
-        Console.WriteLine($"Has state query: {context.Request.Query.ContainsKey("state")}");
-        Console.WriteLine($"Has code query: {context.Request.Query.ContainsKey("code")}");
-        Console.WriteLine("Cookies present:");
-        foreach (var cookie in context.Request.Cookies)
-        {
-            Console.WriteLine($"  - {cookie.Key}");
-        }
-        Console.WriteLine("===================\n");
-    }
+   if (path.Contains("google"))
+   {
+       Console.WriteLine($"\n=== {context.Request.Method} {path} ===");
+       Console.WriteLine($"Has state query: {context.Request.Query.ContainsKey("state")}");
+       Console.WriteLine($"Has code query: {context.Request.Query.ContainsKey("code")}");
+       Console.WriteLine("Cookies present:");
+       foreach (var cookie in context.Request.Cookies)
+       {
+           Console.WriteLine($"  - {cookie.Key}");
+       }
+       Console.WriteLine("===================\n");
+   }
 
-    await next();
+   await next();
 });
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
