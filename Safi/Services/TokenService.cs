@@ -29,12 +29,12 @@ namespace Safi.Services
         {
             var Role = (await _user.GetRolesAsync(user)).FirstOrDefault();
             var claims = new List<Claim>{
-           new Claim(JwtRegisteredClaimNames.Sub,user.Id),
-           new Claim(JwtRegisteredClaimNames.GivenName,user.Name),
-           new Claim(JwtRegisteredClaimNames.Email,user.Email),
-           new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
-           new Claim(ClaimTypes.Role,Role),
-          };
+               new Claim(JwtRegisteredClaimNames.Sub,user.Id ?? string.Empty),
+               new Claim(JwtRegisteredClaimNames.GivenName,user.Name ?? "User"),
+               new Claim(JwtRegisteredClaimNames.Email,user.Email ?? string.Empty),
+               new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
+               new Claim(ClaimTypes.Role,Role ?? "Patient"),
+              };
             var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256Signature);
             var TokenDescriptor = new SecurityTokenDescriptor
             {
