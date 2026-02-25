@@ -42,5 +42,17 @@ namespace Safi.Controllers
             }
             return Ok(doctor);
         }
+        [HttpGet("{doctorId}/patients")]
+        public async Task<IActionResult> GetPatientsInDoctor(string doctorId)
+        {
+            var patients = await _doctorRepo.GetallpatientsdealwithDoctor(doctorId);
+            return Ok(patients);
+        }
+        [HttpGet("{doctorId}/patients/reservation")]
+        public async Task<IActionResult> GetPatientsInDoctorReservation(string doctorId)
+        {
+            var patients = await _doctorRepo.GetallpatientsdealwithDoctorReservation(doctorId);
+            return Ok(patients);
+        }
     }
 }

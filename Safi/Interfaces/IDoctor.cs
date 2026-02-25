@@ -1,3 +1,4 @@
+using Safi.Dto.Account;
 using Safi.Models;
 
 namespace Safi.Interfaces
@@ -6,5 +7,7 @@ namespace Safi.Interfaces
     {
         Task<bool> RateDoctorAsync(string doctorId, int rating);
         Task<Doctor?> GetByIdAsync(string doctorId);
+        Task<List<GetPatientsDto>> GetallpatientsdealwithDoctor(string doctorId);
+        Task<List<GetPatientsDto>> GetallpatientsdealwithDoctorReservation(string doctorId);
     }
 }
