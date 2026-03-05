@@ -10,5 +10,7 @@
         public string University { get; set; } // University graduated from
         public int? DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
+        public bool IsDeleted { get; set; }
+        public bool IsActive { get; set; }
     }
 }

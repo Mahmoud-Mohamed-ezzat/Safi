@@ -41,6 +41,9 @@ namespace Safi.Models
         {
             base.OnModelCreating(builder);
 
+            // Global Query Filter for Users
+            builder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+
             // User inheritance (TPH)
             builder.Entity<User>()
                 .HasDiscriminator<string>("UserType")
@@ -109,35 +112,35 @@ namespace Safi.Models
                 Id = "1",
                 Name = "Admin",
                 NormalizedName = "ADMIN",
-                ConcurrencyStamp="1"
+                ConcurrencyStamp = "1"
             },
                 new IdentityRole
                 {
                     Id = "2",
                     Name = "SubAdmin",
                     NormalizedName = "SUBADMIN",
-                    ConcurrencyStamp= "2"
+                    ConcurrencyStamp = "2"
                 },
                 new IdentityRole
                 {
                     Id = "3",
                     Name = "Patient",
                     NormalizedName = "PATIENT",
-                    ConcurrencyStamp="3"    
+                    ConcurrencyStamp = "3"
                 },
                 new IdentityRole
                 {
                     Id = "4",
                     Name = "Doctor",
                     NormalizedName = "DOCTOR",
-                    ConcurrencyStamp="4"
+                    ConcurrencyStamp = "4"
                 },
                 new IdentityRole
                 {
                     Id = "5",
                     Name = "Staff",
                     NormalizedName = "STAFF",
-                    ConcurrencyStamp="5"
+                    ConcurrencyStamp = "5"
                 }
                 );
             // Seed Departments

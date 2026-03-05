@@ -207,6 +207,7 @@ namespace Safi.Repositories
         public async Task<List<AssignRoomToDoctorDto>> GetByDateAsync(DateOnly date)
         {
             var assignments = await _context.AssignRoomToDoctors
+                .IgnoreQueryFilters()
                 .Include(a => a.Room)
                 .Include(a => a.Doctor)
                 .Where(a => a.StartDate <= date && a.EndDate >= date)
@@ -219,6 +220,7 @@ namespace Safi.Repositories
         public async Task<List<AssignRoomToDoctorDto>> GetByDateAndDoctorIdAsync(DateOnly date, string doctorId)
         {
             var assignments = await _context.AssignRoomToDoctors
+                .IgnoreQueryFilters()
                 .Include(a => a.Room)
                 .Include(a => a.Doctor)
                 .Where(a => a.StartDate <= date && a.EndDate >= date && a.DoctorId == doctorId)

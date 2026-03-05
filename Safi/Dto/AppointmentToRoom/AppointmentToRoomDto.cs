@@ -16,5 +16,7 @@ namespace Safi.Dto.AppointmentToRoom
         public string? DepartmentName { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        public bool IsDeleted { get; set; }
+        public bool IsActive { get; set; }
     }
 }

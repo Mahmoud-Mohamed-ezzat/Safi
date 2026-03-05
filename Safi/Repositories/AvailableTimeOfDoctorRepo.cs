@@ -157,14 +157,27 @@ namespace Safi.Repositories
         }
         public async Task<bool> DeleteAvailableTime(int id)
         {
-            var entity = await _context.TimeAvailableOfDoctors.FirstOrDefaultAsync(t => t.Id == id);
+            try
+            {
+                var Context = await _context.Database.BeginTransactionAsync();
+                var entity = await _context.TimeAvailableOfDoctors.FirstOrDefaultAsync(t => t.Id == id);
 
-            if (entity == null)
-                return false;
-
-            _context.TimeAvailableOfDoctors.Remove(entity);
-            await _context.SaveChangesAsync();
-            return true;
+                if (entity == null)
+                    return false;
+                var result = await _reservation.DeleteManyReservationsByAvailableTimeId(id);
+                if (result == false)
+                {
+                    Context.Rollback();
+                    return false;
+                }
+                _context.TimeAvailableOfDoctors.Remove(entity);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex) { 
+             return false;
+            
+            }
         }
 
         public async Task<List<AvailableTimeInfoDto>> GetAvailableTimesByDepartment(string Department)

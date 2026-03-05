@@ -6,6 +6,8 @@ using Safi.Models;
 using Microsoft.AspNetCore.SignalR;
 using Safi.Hubs;
 using System.ComponentModel.DataAnnotations;
+using Safi.Dto.Account;
+using Safi.Dto.Department;
 namespace Safi.Repositories
 {
     public class ReservationRepo : IReservation
@@ -57,73 +59,112 @@ namespace Safi.Repositories
 
             return createdReservations;
         }
+        public async Task<bool> DeleteOneReservation(int reservationId)
+        {
+            try
+            {
+                await _context.Database.BeginTransactionAsync();
+                var reservation = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId);
+                if (reservation == null)
+                    return false;
+                _context.Reservations.Remove(reservation);
+                await _context.SaveChangesAsync();
+                await _context.Database.CommitTransactionAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _context.Database.RollbackTransactionAsync();
+                return false;
+            }
+        }
         public async Task<bool> DeleteManyReservationsByAvailableTimeId(int availableTimeId)
         {
-            var availableTime = await _context.TimeAvailableOfDoctors
-                   .FirstOrDefaultAsync(t => t.Id == availableTimeId);
-            if (availableTime == null)
+            try
+            {
+                await _context.Database.BeginTransactionAsync();
+                var availableTime = await _context.TimeAvailableOfDoctors
+                       .FirstOrDefaultAsync(t => t.Id == availableTimeId);
+                if (availableTime == null)
+                    return false;
+
+                var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
+
+                var reservations = await _context.Reservations
+                    .Where(r => r.DoctorId == availableTime.DoctorId && r.Time.Date == targetDate)
+                    .ToListAsync();
+
+                if (reservations.Count == 0)
+                    return false;
+
+                _context.Reservations.RemoveRange(reservations);
+                await _context.SaveChangesAsync();
+                await _context.Database.CommitTransactionAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _context.Database.RollbackTransactionAsync();
                 return false;
-
-            var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
-
-            var reservations = await _context.Reservations
-                .Where(r => r.DoctorId == availableTime.DoctorId && r.Time.Date == targetDate)
-                .ToListAsync();
-
-            if (reservations.Count == 0)
-                return false;
-
-            _context.Reservations.RemoveRange(reservations);
-            await _context.SaveChangesAsync();
-            return true;
+            }
         }
 
         public async Task<bool> UpdateManyReservationsByAvailableTimeId(int availableTimeId, UpdateManyReservationsDto dto)
         {
-            var availableTime = await _context.TimeAvailableOfDoctors
-                   .FirstOrDefaultAsync(t => t.Id == availableTimeId);
-            if (availableTime == null)
-                return false;
-            var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
-            var existingReservations = await _context.Reservations
-                .Where(r => r.DoctorId == availableTime.DoctorId && r.Time.Date == targetDate.Date)
-                .OrderBy(r => r.Time)
-                .ToListAsync();
-            var slotDuration = (dto.EndTime - dto.StartTime) / dto.slots;
-            int existingCount = existingReservations.Count;
-            int targetCount = dto.slots;
-            int minCount = Math.Min(existingCount, targetCount);
-            // Update existing reservations (EF Core tracks changes automatically)
-            for (int i = 0; i < minCount; i++)
+            try
             {
-                var reservation = existingReservations[i];
-                reservation.Time = dto.StartTime + (slotDuration * i);
-                reservation.PatientId = dto.PatientId;
-                reservation.Status = dto.Status;
-            }
-            // Add new reservations if needed
-            if (targetCount > existingCount)
-            {
-                var newReservations = new List<Reservation>(targetCount - existingCount);
-                for (int i = existingCount; i < targetCount; i++)
+                await _context.Database.BeginTransactionAsync();
+                var availableTime = await _context.TimeAvailableOfDoctors
+                       .FirstOrDefaultAsync(t => t.Id == availableTimeId);
+                if (availableTime == null)
+                    return false;
+                var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
+                var existingReservations = await _context.Reservations
+                    .Where(r => r.DoctorId == availableTime.DoctorId && r.Time.Date == targetDate.Date)
+                    .OrderBy(r => r.Time)
+                    .ToListAsync();
+                var slotDuration = (dto.EndTime - dto.StartTime) / dto.slots;
+                int existingCount = existingReservations.Count;
+                int targetCount = dto.slots;
+                int minCount = Math.Min(existingCount, targetCount);
+                // Update existing reservations (EF Core tracks changes automatically)
+                for (int i = 0; i < minCount; i++)
                 {
-                    newReservations.Add(new Reservation
-                    {
-                        DoctorId = dto.DoctorId,
-                        PatientId = dto.PatientId,
-                        Time = dto.StartTime + (slotDuration * i),
-                        Status = dto.Status
-                    });
+                    var reservation = existingReservations[i];
+                    reservation.Time = dto.StartTime + (slotDuration * i);
+                    reservation.PatientId = dto.PatientId;
+                    reservation.Status = dto.Status;
                 }
-                _context.Reservations.AddRange(newReservations);
+                // Add new reservations if needed
+                if (targetCount > existingCount)
+                {
+                    var newReservations = new List<Reservation>(targetCount - existingCount);
+                    for (int i = existingCount; i < targetCount; i++)
+                    {
+                        newReservations.Add(new Reservation
+                        {
+                            DoctorId = dto.DoctorId,
+                            PatientId = dto.PatientId,
+                            Time = dto.StartTime + (slotDuration * i),
+                            Status = dto.Status
+                        });
+                    }
+                    _context.Reservations.AddRange(newReservations);
+                }
+                // Remove excess reservations if needed
+                if (existingCount > targetCount)
+                {
+                    _context.Reservations.RemoveRange(existingReservations.GetRange(targetCount, existingCount - targetCount));
+                }
+                await _context.SaveChangesAsync();
+                await _context.Database.CommitTransactionAsync();
+                return true;
             }
-            // Remove excess reservations if needed
-            if (existingCount > targetCount)
+            catch (Exception ex)
             {
-                _context.Reservations.RemoveRange(existingReservations.GetRange(targetCount, existingCount - targetCount));
+                await _context.Database.RollbackTransactionAsync();
+                return false;
             }
-            await _context.SaveChangesAsync();
-            return true;
         }
         public async Task<bool> Assignreservationforpatient(AssignReservationForpatient dto)
         {
@@ -150,7 +191,7 @@ namespace Safi.Repositories
             try
             {
                 await _context.SaveChangesAsync();
-
+                await addDepartmenttoPatientDepartmentWhenReservationIsCreated(dto.PatientID, reservation.DoctorId);
             }
             catch (Exception)
             {
@@ -192,43 +233,80 @@ namespace Safi.Repositories
             return reservationsDto;
         }
 
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorId(string doctorId)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorId(string doctorId)
         {
-            throw new NotImplementedException();
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == doctorId);
+            if (doctor == null) return null;
+            var reservations = await _context
+            .Reservations
+            .Include(r => r.Doctor)
+            .Include(r => r.Patient)
+            .Where(r => r.DoctorId == doctorId)
+            .ToListAsync();
+            if (reservations == null) return null;
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDoctorId(string patientId, string doctorId)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDoctorId(string patientId, string doctorId)
         {
-            throw new NotImplementedException();
+            var reservations = await _context
+            .Reservations
+            .Include(r => r.Doctor)
+            .Include(r => r.Patient)
+            .Where(r => r.DoctorId == doctorId && r.PatientId == patientId)
+            .ToListAsync();
+            if (reservations == null) return null;
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateTime date)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateTime date)
         {
-            throw new NotImplementedException();
+            var reservations = await _context
+            .Reservations
+            .Include(r => r.Doctor)
+            .Include(r => r.Patient)
+            .Where(r => r.PatientId == patientId && r.Time.Date == date.Date)
+            .ToListAsync();
+            if (reservations == null) return null;
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateTime date)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateTime date)
         {
-            throw new NotImplementedException();
+            var reservations = await _context
+            .Reservations
+            .Include(r => r.Doctor)
+            .Include(r => r.Patient)
+            .Where(r => r.DoctorId == doctorId && r.Time.Date == date.Date)
+            .ToListAsync();
+            if (reservations == null) return null;
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateTime date)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateTime date)
         {
-            throw new NotImplementedException();
+            var reservations = await _context
+            .Reservations
+            .Include(r => r.Doctor)
+            .Include(r => r.Patient)
+            .Where(r => r.Time.Date == date.Date)
+            .ToListAsync();
+            if (reservations == null) return null;
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public async Task<string?> addDepartmenttoPatientDepartmentWhenReservationIsCreated(addDepartmenttoPatientDepartmentWhenReservationIsCreatedDto dto)
+        public async Task<string?> addDepartmenttoPatientDepartmentWhenReservationIsCreated(string patientId, string doctorId)
         {
             var doctor = await _context.Doctors
                 .Include(d => d.Department)
-                .FirstOrDefaultAsync(d => d.Id == dto.DoctorId);
+                .FirstOrDefaultAsync(d => d.Id == doctorId);
 
             if (doctor?.Department == null)
                 return null;
 
             var patient = await _context.Patients
                 .Include(p => p.Departments)
-                .FirstOrDefaultAsync(p => p.Id == dto.PatientId);
+                .FirstOrDefaultAsync(p => p.Id == patientId);
 
             if (patient == null)
                 return null;
@@ -242,5 +320,48 @@ namespace Safi.Repositories
             return doctor.Department.Name;
         }
 
+        public async Task<List<GetPatientsDto>> GetallpatientsdealwithDoctor(string doctorId)
+        {
+            var doctor = await _context.Doctors
+                .Include(d => d.Reservations)
+                .FirstOrDefaultAsync(d => d.Id == doctorId);
+            if (doctor?.Reservations == null)
+                return null;
+            var Reservations = await _context.Reservations
+                  .Include(r => r.Patient)
+                  .Where(r => r.DoctorId == doctorId && r.PatientId != null)
+                  .ToListAsync();
+            var patients = Reservations.Select(r => r.Patient).ToList();
+            return patients.Select(p => p.ToGetPatientsDto()).GroupBy(p => p.Id).Select(g => g.First()).ToList();
+        }
+
+        public async Task<List<reservationInfoforgetpatientReservations>> GetAllReservations()
+        {
+            var reservations = await _context.Reservations
+                .Include(r => r.Doctor)
+                .Include(r => r.Patient)
+                .ToListAsync();
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
+        }
+
+        public async Task<List<reservationInfoforgetpatientReservations>> GetAllUnassignedReservations()
+        {
+            var reservations = await _context.Reservations
+                .Include(r => r.Doctor)
+                .Include(r => r.Patient)
+                .Where(r => r.PatientId == null || r.Status != "Reserved")
+                .ToListAsync();
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
+        }
+
+        public async Task<List<reservationInfoforgetpatientReservations>> GetAllAssignedReservations()
+        {
+            var reservations = await _context.Reservations
+                .Include(r => r.Doctor)
+                .Include(r => r.Patient)
+                .Where(r => r.PatientId != null && r.Status == "Reserved")
+                .ToListAsync();
+            return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
+        }
     }
 }

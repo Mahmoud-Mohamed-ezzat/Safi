@@ -48,4 +48,15 @@ public static class ReservationMapper
             slots = dto.Slots
         };
     }
+    public static reservationInfoforgetpatientReservations ToreservationInfoforgetpatientReservationsDto(this Reservation model){
+        return new reservationInfoforgetpatientReservations{
+            DoctorId=model.DoctorId,
+            PatientId=model.PatientId??null,
+            PatientName = model.Patient?.Name ?? "N/A",
+            DoctorName = model.Doctor?.Name ?? "N/A",
+            StartTime =model.Time,
+            Status=model.Status
+        };
+
+    }
 }

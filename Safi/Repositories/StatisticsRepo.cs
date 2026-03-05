@@ -16,10 +16,11 @@ namespace Safi.Repositories
 
         public async Task<GeneralStatsDto> GetGeneralStatsAsync()
         {
-            var totalDoctors = await _context.Doctors.CountAsync();
-            var totalPatients = await _context.Patients.CountAsync();
+            var totalDoctors = await _context.Doctors.IgnoreQueryFilters().CountAsync();
+            var totalPatients = await _context.Patients.IgnoreQueryFilters().CountAsync();
 
             var assignedDoctors = await _context.AssignRoomToDoctors
+                .IgnoreQueryFilters()
                 .Where(a => a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow)) // Active assignments
                 .Select(a => a.DoctorId)
                 .Distinct()
@@ -37,18 +38,19 @@ namespace Safi.Repositories
         public async Task<List<DepartmentPatientStatsDto>> GetPatientsPerDepartmentAsync()
         {
             return await _context.Departments
+                .IgnoreQueryFilters()
                 .Select(d => new DepartmentPatientStatsDto
                 {
                     DepartmentName = d.Name,
-                    PatientCount = d.Patients!.Count
+                    PatientCount = _context.Patients.IgnoreQueryFilters().Count(p => p.Departments != null && p.Departments.Any(dept => dept.Id == d.Id))
                 })
                 .ToListAsync();
         }
 
         public async Task<PatientDistributionDto> GetPatientDistributionAsync()
         {
-            var oneDept = await _context.Patients.CountAsync(p => p.Departments!.Count == 1);
-            var multiDept = await _context.Patients.CountAsync(p => p.Departments!.Count > 1);
+            var oneDept = await _context.Patients.IgnoreQueryFilters().CountAsync(p => p.Departments!.Count == 1);
+            var multiDept = await _context.Patients.IgnoreQueryFilters().CountAsync(p => p.Departments!.Count > 1);
 
             return new PatientDistributionDto
             {
@@ -67,7 +69,7 @@ namespace Safi.Repositories
                 {
                     d.Name,
                     AllRooms = d.Rooms!.Count(), // Includes all types
-                    NormalRooms = d.Rooms!.Count(r=>r.GetType().Name=="Room"),
+                    NormalRooms = d.Rooms!.Count(r => r.GetType().Name == "Room"),
                     Icus = d.Icus!.Count(),
                     Emergencies = d.Emergencies!.Count(),
                     Available = d.Rooms!.Count(r => r.Status == "Available"),
@@ -92,6 +94,7 @@ namespace Safi.Repositories
             // We look at AssignRoomToDoctors grouped by RoomId (active assignments)
 
             var assignments = _context.AssignRoomToDoctors
+                .IgnoreQueryFilters()
                 .Where(a => a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow));
 
             var grouped = assignments.GroupBy(a => a.RoomId);
@@ -112,6 +115,7 @@ namespace Safi.Repositories
             // We'll focus on AppointmentToRoom usage as requested
 
             var doctors = await _context.AppointmentToRooms
+                .IgnoreQueryFilters()
                 .Include(a => a.Doctor)
                 .ThenInclude(d => d!.Department)
                 .Where(a => a.PatientId == patientId && a.Doctor != null)

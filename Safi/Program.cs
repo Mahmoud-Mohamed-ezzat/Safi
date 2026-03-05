@@ -156,6 +156,7 @@ builder.Services.AddScoped<IShift, ShiftRepo>();
 builder.Services.AddScoped<IStatisticsRepo, StatisticsRepo>();
 builder.Services.AddScoped<IEmailService, EmailRepository>();
 builder.Services.AddScoped<IDoctor, DoctorRepo>();
+builder.Services.AddScoped<IAccount, AccountRepo>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -171,25 +172,33 @@ app.UseCors("ReactPolicy");
 // Only use HTTPS redirection in production or when HTTPS is available
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "http://localhost:3000");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "http://localhost:3001");
+        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=604800"); // Cache images 7 days
+    }
+});
 app.Use(async (context, next) =>
 {
-   var path = context.Request.Path.Value;
+    var path = context.Request.Path.Value;
 
-   if (path.Contains("google"))
-   {
-       Console.WriteLine($"\n=== {context.Request.Method} {path} ===");
-       Console.WriteLine($"Has state query: {context.Request.Query.ContainsKey("state")}");
-       Console.WriteLine($"Has code query: {context.Request.Query.ContainsKey("code")}");
-       Console.WriteLine("Cookies present:");
-       foreach (var cookie in context.Request.Cookies)
-       {
-           Console.WriteLine($"  - {cookie.Key}");
-       }
-       Console.WriteLine("===================\n");
-   }
+    if (path != null && path.Contains("google"))
+    {
+        Console.WriteLine($"\n=== {context.Request.Method} {path} ===");
+        Console.WriteLine($"Has state query: {context.Request.Query.ContainsKey("state")}");
+        Console.WriteLine($"Has code query: {context.Request.Query.ContainsKey("code")}");
+        Console.WriteLine("Cookies present:");
+        foreach (var cookie in context.Request.Cookies)
+        {
+            Console.WriteLine($"  - {cookie.Key}");
+        }
+        Console.WriteLine("===================\n");
+    }
 
-   await next();
+    await next();
 });
 
 app.UseRateLimiter();

@@ -13,5 +13,7 @@ namespace Safi.Dto.Account
         public bool? HasSugar { get; set; } // Diabetes indicator
         public bool? HasPressure { get; set; } // Hypertension indicator
         public List<DepartmentInfoDto>? Departments { get; set; }
+        public bool IsDeleted { get; set; }
+        public bool IsActive { get; set; }
     }
 }

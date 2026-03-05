@@ -1,15 +1,19 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Safi.Dto.EmailDto;
+using Safi.Interfaces;
 using Safi.Models;
 namespace Safi.Hubs;
 
 public class ReservationHub : Hub
 {
     private readonly SafiContext _context;
+    private readonly IEmailService _emailService;
 
-    public ReservationHub(SafiContext context)
+    public ReservationHub(SafiContext context, IEmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
     public async Task TestMe(string someRandomText)
@@ -130,8 +134,30 @@ public class ReservationHub : Hub
                     DoctorId = reservation.DoctorId,
                     Day = dayStr,
                     Time = reservation.Time,
-                    PatientId = patientId
+                    PatientId = patientId,
                 });
+
+            // Send Email to Patient
+            if (user.Email != null)
+            {
+                await _emailService.SendEmailAsync(new SendEmailDto
+                {
+                    ToEmail = user.Email,
+                    Subject = "Reservation Confirmation",
+                    Body = $"Dear {user.Name},\nYour reservation with Dr. {reservation.Doctor.Name} on {reservation.Time:f} has been confirmed.\n\nThank you for choosing Safi."
+                });
+            }
+
+            // Send Email to Doctor
+            if (doctor.Email != null)
+            {
+                await _emailService.SendEmailAsync(new SendEmailDto
+                {
+                    ToEmail = doctor.Email,
+                    Subject = "New Reservation Notification",
+                    Body = $"Dear Dr. {reservation.Doctor.Name},\nYou have a new reservation from patient {user.Name} on {reservation.Time:f}."
+                });
+            }
         }
         catch (DbUpdateConcurrencyException)
         {

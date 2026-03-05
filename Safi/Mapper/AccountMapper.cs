@@ -19,21 +19,25 @@ namespace Safi.Mapper
                 Degree = doctor.Degree,
                 Rank = doctor.Rank,
                 DepartmentId = doctor.DepartmentId,
-                DepartmentName = doctor.Department.Name
+                DepartmentName = doctor.Department?.Name ?? "",
+                IsDeleted = doctor.IsDeleted,
+                IsActive = doctor.IsActive
             };
         }
         public static GetStaffsDto ToGetStaffsDto(this Staff staff)
         {
             return new GetStaffsDto
             {
-                Id = staff.Id,
-                Name = staff.Name,
-                Image = staff.Image,
-                Email = staff.Email,
-                Phone = staff.PhoneNumber,
-                University = staff.University,
+                Id = staff.Id ?? "",
+                Name = staff.Name ?? "",
+                Image = staff.Image ?? "",
+                Email = staff.Email ?? "",
+                Phone = staff.PhoneNumber ?? "",
+                University = staff.University ?? "",
                 DepartmentId = staff.DepartmentId,
-                DepartmentName = staff.Department.Name
+                DepartmentName = staff.Department?.Name ?? "",
+                IsDeleted = staff.IsDeleted,
+                IsActive = staff.IsActive
             };
         }
         public static GetPatientsDto ToGetPatientsDto(this Patient patient)
@@ -41,18 +45,20 @@ namespace Safi.Mapper
             return new GetPatientsDto
             {
                 Id = patient.Id,
-                Name = patient.Name,
-                Image = patient.Image,
-                Email = patient.Email,
-                Phone = patient.PhoneNumber,
+                Name = patient.Name ?? null,
+                Image = patient.Image ?? null,
+                Email = patient.Email ?? null,
+                Phone = patient.PhoneNumber ?? null,
                 HasSugar = patient.HasSugar,
-                History = patient.History,
+                History = patient.History ?? "",
                 HasPressure = patient.HasPressure,
                 Departments = patient.Departments?.Select(d => new DepartmentInfoDto
                 {
                     Id = d.Id,
-                    Name = d.Name
-                }).ToList()
+                    Name = d.Name ?? ""
+                }).ToList(),
+                IsDeleted = patient.IsDeleted,
+                IsActive = patient.IsActive
             };
         }
 
@@ -62,9 +68,11 @@ namespace Safi.Mapper
             {
                 Id = user.Id,
                 Name = user.Name,
-                Image = user.Image,
-                Email = user.Email,
-                Phone = user.PhoneNumber,
+                Image = user.Image ?? "",
+                Email = user.Email ?? "",
+                Phone = user.PhoneNumber ?? "",
+                IsDeleted = user.IsDeleted,
+                IsActive = user.IsActive
             };
         }
     }

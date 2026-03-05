@@ -1,4 +1,5 @@
 ﻿using Safi.Dto.Reservation;
+using Safi.Dto.Account;
 using Safi.Models;
 
 namespace Safi.Interfaces
@@ -9,6 +10,7 @@ namespace Safi.Interfaces
         public Task<List<Reservation>> CreateManyReservations(CreatemanyReservationsDto dto);
         public Task<bool> UpdateManyReservationsByAvailableTimeId(int availableTimeId, UpdateManyReservationsDto dto);
         public Task<bool> DeleteManyReservationsByAvailableTimeId(int availableTimeId);
+        public Task<bool> DeleteOneReservation(int reservationId);
         public Task<bool> Assignreservationforpatient(AssignReservationForpatient dto);
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientId(string patientId);
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorId(string doctorId);
@@ -16,6 +18,10 @@ namespace Safi.Interfaces
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateTime date);
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateTime date);
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateTime date);
-        public Task<string?> addDepartmenttoPatientDepartmentWhenReservationIsCreated(addDepartmenttoPatientDepartmentWhenReservationIsCreatedDto dto);
+        public Task<List<GetPatientsDto>> GetallpatientsdealwithDoctor(string doctorId);
+        public Task<string?> addDepartmenttoPatientDepartmentWhenReservationIsCreated(string patientId, string doctorId);
+        public Task<List<reservationInfoforgetpatientReservations>> GetAllReservations();
+        public Task<List<reservationInfoforgetpatientReservations>> GetAllUnassignedReservations();
+        public Task<List<reservationInfoforgetpatientReservations>> GetAllAssignedReservations();
     }
 }

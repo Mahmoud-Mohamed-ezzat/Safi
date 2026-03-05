@@ -54,5 +54,16 @@ namespace Safi.Controllers
             var patients = await _doctorRepo.GetallpatientsdealwithDoctorReservation(doctorId);
             return Ok(patients);
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var result = await _doctorRepo.DeleteDoctorAsync(id);
+            if (!result)
+            {
+                return NotFound("Doctor not found.");
+            }
+            return Ok("Doctor soft-deleted successfully.");
+        }
     }
 }

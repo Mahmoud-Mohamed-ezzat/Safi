@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Interfaces;
@@ -9,16 +11,21 @@ namespace Safi.Repositories
     public class ReportDoctorToPatientRepo : IReportDoctorToPatient
     {
         private readonly SafiContext _context;
+        private readonly UserManager<User> _usermanager;
+        private readonly IReservation _reservation;
 
-        public ReportDoctorToPatientRepo(SafiContext context)
+        public ReportDoctorToPatientRepo(SafiContext context, UserManager<User> userManager, IReservation reservation)
         {
             _context = context;
+            _usermanager = userManager;
+            _reservation = reservation;
         }
 
         // Helper method to get query with all navigation properties included
         private IQueryable<ReportDoctorToPatient> GetQueryWithIncludes()
         {
             return _context.ReportDoctorToPatients
+                .IgnoreQueryFilters()
                 .Include(r => r.Patient)
                 .Include(r => r.Doctor);
         }
@@ -58,7 +65,15 @@ namespace Safi.Repositories
         {
             var report = dto.ToReportDoctorToPatient();
             report.CreatedAt = DateTime.Now;
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == dto.PatientId);
+            var Doctor = await _context.Doctors.FirstOrDefaultAsync(p => p.Id == dto.DoctorId);
+            if (patient != null && Doctor != null)
+            {
+                string medicinesList = string.Join(", ", dto.Medicines ?? new List<string>());
+                patient.History += Environment.NewLine + $" Doctor:{Doctor.Name} make Report created At {report.CreatedAt} which contain {dto.Report} and medicines: {medicinesList}  ";
+            }
             await _context.ReportDoctorToPatients.AddAsync(report);
+            await _reservation.addDepartmenttoPatientDepartmentWhenReservationIsCreated(dto.PatientId, dto.DoctorId);
             await _context.SaveChangesAsync();
 
             // Reload to get navigation properties
@@ -149,9 +164,10 @@ namespace Safi.Repositories
 
         public async Task<List<ReportDoctorToPatient>> GetAllReportwroteWhilePatientAppointsToRoom(string PatientId, int AppointmentToRoomId)
         {
-            var app = await _context.AppointmentToRooms.Include(a => a.Room).FirstOrDefaultAsync(a => a.Id == AppointmentToRoomId && a.PatientId == PatientId);
+            var app = await _context.AppointmentToRooms.IgnoreQueryFilters().Include(a => a.Room).FirstOrDefaultAsync(a => a.Id == AppointmentToRoomId && a.PatientId == PatientId);
             if (app == null || app.StartTime == null) return null;
             var reports = await _context.ReportDoctorToPatients
+                 .IgnoreQueryFilters()
                  .Include(r => r.Patient)
                  .Include(r => r.Doctor)
                  .Where(r => r.PatientId == PatientId && DateOnly.FromDateTime(r.CreatedAt) <= DateOnly.FromDateTime(app.EndTime == null ? DateTime.UtcNow : app.EndTime.Value) && DateOnly.FromDateTime(r.CreatedAt) >= DateOnly.FromDateTime(app.StartTime.Value))

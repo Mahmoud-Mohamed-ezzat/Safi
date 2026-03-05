@@ -3,7 +3,7 @@
     public class AssignReservationForpatient
     {
 
-        public string PatientID { get; set; }
+        public string? PatientID { get; set; }
         public int ReservationId { get; set; }
     }
 }
