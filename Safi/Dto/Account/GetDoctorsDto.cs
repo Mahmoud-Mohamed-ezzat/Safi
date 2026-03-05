@@ -15,5 +15,7 @@ namespace Safi.Dto.Account
         public float Rank { get; set; } // Ranking or rating
         public int? DepartmentId { get; set; }
         public string? DepartmentName { get; set; }
+        public bool IsDeleted { get; set; }
+        public bool IsActive { get; set; }
     }
 }

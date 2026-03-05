@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Safi.Models;
 using Safi.Helpers;
+using Microsoft.EntityFrameworkCore;
 namespace Safi.Hubs
 {
     public class MessageHub:Hub
@@ -73,5 +74,26 @@ namespace Safi.Hubs
             await Clients.Users(message.SenderId, message.ReceiverId)
                        .SendAsync("MessageDeleted", messageId);
         }
+        public async Task LoadChatHistory(string senderId, string receiverId ,int pageNumber=1)
+        {
+            int pagesize=10;
+            var messages = await _context.Messages
+                .Where(m => (m.SenderId == senderId && m.ReceiverId == receiverId) || 
+                            (m.SenderId == receiverId && m.ReceiverId == senderId))
+                .OrderBy(m => m.CreatedAt)
+                .Skip((pageNumber - 1) * pagesize)
+                .Take(pagesize)
+                .ToListAsync();
+
+            await Clients.Caller.SendAsync("ChatHistoryLoaded", messages);
+        }
+      public async Task notifyTyping(string senderId, string receiverId)
+      {
+        await Clients.Group(receiverId).SendAsync("Typing", senderId);
+      }  
+      public async Task notifyNotTyping(string senderId, string receiverId)
+      {
+        await Clients.Group(receiverId).SendAsync("NotTyping", senderId);
+      }  
     }
 }

@@ -1,12 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Account;
+using Safi.Dto.EmailDto;
+using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
 using Safi.Services;
+
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 
 namespace Safi.Controllers
 {
@@ -18,343 +24,347 @@ namespace Safi.Controllers
         readonly SignInManager<User> _signInManager;
         readonly TokenService _tokenServices;
         readonly ImageService _imageService;
-        readonly SafiContext _context;
-        public AccountsController(SafiContext context, TokenService tokenServices, UserManager<User> userManager, SignInManager<User> signInManager, ImageService imageService)
+        readonly IAccount _accountRepo;
+        readonly IWebHostEnvironment _env;
+
+        public AccountsController(
+            UserManager<User> userManager,
+            SignInManager<User> signInManager,
+            TokenService tokenServices,
+            ImageService imageService,
+            IAccount accountRepo,
+            IWebHostEnvironment env)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenServices = tokenServices;
             _imageService = imageService;
-            _context = context;
+            _accountRepo = accountRepo;
+            _env = env;
         }
 
         [AllowAnonymous]
-        [HttpPost("SignUpSubAdmin")]
-        public async Task<IActionResult> signupAsSubAdmin([FromForm] SignupFoRAdminOfWebDto model)
+        [HttpGet("external-login/google")]
+        public IActionResult GoogleLogin(string returnUrl = "/")
+        {
+            var redirectUrl = $"{Request.Scheme}://{Request.Host}/api/accounts/external-login/google/callback";
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+            properties.Items["returnUrl"] = returnUrl;
+            properties.SetParameter("prompt", "select_account");
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet("external-login/google/callback")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null) return BadRequest("Error loading external login information.");
+
+            string? imagePath = null;
+            var pictureUrl = info.Principal.FindFirst("picture")?.Value;
+            if (!string.IsNullOrEmpty(pictureUrl))
+            {
+                imagePath = await DownloadAndSaveGoogleImage(pictureUrl);
+            }
+
+            var userToUse = await _accountRepo.ExternalLoginCallbackAsync(info, imagePath);
+            if (userToUse == null) return BadRequest("Could not sign in with Google.");
+
+            await _signInManager.SignInAsync(userToUse, isPersistent: false);
+            var jwt = await _tokenServices.GenerateToken(userToUse);
+
+            if (!string.IsNullOrEmpty(jwt.RefreshToken))
+            {
+                _tokenServices.SetRefreshTokenInCookies(jwt.RefreshToken, jwt.RefreshTokenExpiration);
+            }
+
+            var returnUrl = info.AuthenticationProperties?.Items["returnUrl"] ?? "/";
+
+            return Redirect($"{returnUrl}?token={jwt.Token}");
+        }
+
+        private async Task<string?> DownloadAndSaveGoogleImage(string imageUrl)
         {
             try
             {
-                if (!ModelState.IsValid) return BadRequest();
-
-                string imagePath = null;
-                if (model.Image != null && model.Image.Length > 0)
-                {
-                    imagePath = await _imageService.SaveImageAsync(model.Image);
-                }
-
-                var user = new User
-                {
-                    Name = model.username,
-                    UserName = model.email,
-                    Email = model.email,
-                    PhoneNumber = model.Phone,
-                    Image = imagePath
-                };
-                var createduser = await _userManager.CreateAsync(user, model.Password);
-                if (createduser.Succeeded)
-                {
-                    var Role = await _userManager.AddToRoleAsync(user, "SubAdmin");
-                    if (Role.Succeeded)
-                    {
-
-                        return Ok($"registerd is successful ");
-                    }
-                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
-                }
-                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
+                using var client = new HttpClient();
+                var imageBytes = await client.GetByteArrayAsync(imageUrl);
+                var fileName = $"google_{Guid.NewGuid()}.jpg";
+                var imagesFolder = Path.Combine(_env.WebRootPath, "images");
+                Directory.CreateDirectory(imagesFolder);
+                var filePath = Path.Combine(imagesFolder, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
+                // Return a frontend-accessible relative URL
+                return $"/images/{fileName}";
             }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
-            }
+            catch { return null; }
+        }
+
+        [HttpPost("ForgetPassword")]
+        public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordDto model)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _accountRepo.ForgetPasswordAsync(model);
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto model)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _accountRepo.ResetPasswordAsync(model);
+            if (result.Succeeded) return Ok("Password reset successful");
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        [HttpPost("SignUpSubAdmin")]
+        public async Task<IActionResult> signupAsSubAdmin([FromForm] SignupFoRAdminOfWebDto model)
+        {
+            if (!ModelState.IsValid) return BadRequest();
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.SignupAsSubAdminAsync(model, imagePath);
+            if (result.Succeeded) return Ok("Registered successful");
+            return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
 
         [AllowAnonymous]
         [HttpPost("SignUpAdmin")]
         public async Task<IActionResult> signupAsAdmin([FromForm] SignupFoRAdminOfWebDto model)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest();
-
-                string imagePath = null;
-                if (model.Image != null && model.Image.Length > 0)
-                {
-                    imagePath = await _imageService.SaveImageAsync(model.Image);
-                }
-
-                var user = new User
-                {
-                    Name = model.username,
-                    UserName = model.email,
-                    Email = model.email,
-                    PhoneNumber = model.Phone,
-                    Image = imagePath
-                };
-                var createduser = await _userManager.CreateAsync(user, model.Password);
-                if (createduser.Succeeded)
-                {
-                    var Role = await _userManager.AddToRoleAsync(user, "Admin");
-                    if (Role.Succeeded)
-                    {
-
-                        return Ok($"registerd is successful ");
-                    }
-                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
-                }
-                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
-            }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
-            }
+            if (!ModelState.IsValid) return BadRequest();
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.SignupAsAdminAsync(model, imagePath);
+            if (result.Succeeded) return Ok("Registered successful");
+            return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
 
         [AllowAnonymous]
         [HttpPost("SignupAsaUser")]
         public async Task<IActionResult> SignupAsaPatient([FromForm] SignupAsPatientDto model)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest();
-
-                string imagePath = null;
-                if (model.Image != null && model.Image.Length > 0)
-                {
-                    imagePath = await _imageService.SaveImageAsync(model.Image);
-                }
-
-                var user = new Patient
-                {
-                    Name = model.username,
-                    UserName = model.email,
-                    Email = model.email,
-                    PhoneNumber = model.Phone,
-                    Image = imagePath,
-                    HasSugar = model.hassugar,
-                    HasPressure = model.hasPressure
-                };
-                var createduser = await _userManager.CreateAsync(user, model.Password);
-                if (createduser.Succeeded)
-                {
-                    var Role = await _userManager.AddToRoleAsync(user, "Patient");
-                    if (Role.Succeeded)
-                    {
-
-                        return Ok($"registerd is successful ");
-                    }
-                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
-                }
-                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
-            }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
-            }
+            if (!ModelState.IsValid) return BadRequest();
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.SignupAsPatientAsync(model, imagePath);
+            if (result.Succeeded) return Ok("Registered successful");
+            return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
+
         [AllowAnonymous]
         [HttpPost("SignupAsADoctor")]
         public async Task<IActionResult> SignupAsADoctor([FromForm] SignupOfDoctorDto model)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest();
-
-                string imagePath = null;
-                if (model.Image != null && model.Image.Length > 0)
-                {
-                    imagePath = await _imageService.SaveImageAsync(model.Image);
-                }
-
-                var user = new Doctor
-                {
-                    Name = model.username,
-                    UserName = model.email,
-                    Email = model.email,
-                    PhoneNumber = model.Phone,
-                    Image = imagePath,
-                    University = model.University,
-                    Degree = model.Degree,
-                    Rank = model.Rank,
-                    DepartmentId = model.DepartmentId
-                };
-                var createduser = await _userManager.CreateAsync(user, model.Password);
-                if (createduser.Succeeded)
-                {
-                    var Role = await _userManager.AddToRoleAsync(user, "Doctor");
-                    if (Role.Succeeded)
-                    {
-
-                        return Ok($"registerd is successful ");
-                    }
-                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
-                }
-                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
-            }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
-            }
+            if (!ModelState.IsValid) return BadRequest();
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.SignupAsDoctorAsync(model, imagePath);
+            if (result.Succeeded) return Ok("Registered successful");
+            return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
 
         [AllowAnonymous]
         [HttpPost("SignupAsSatff")]
         public async Task<IActionResult> SignupAsStaff([FromForm] SignupOfStaffDto model)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest();
-
-                string imagePath = null;
-                if (model.Image != null && model.Image.Length > 0)
-                {
-                    imagePath = await _imageService.SaveImageAsync(model.Image);
-                }
-
-                var user = new Staff
-                {
-                    Name = model.username,
-                    UserName = model.email,
-                    Email = model.email,
-                    PhoneNumber = model.Phone,
-                    Image = imagePath,
-                    University = model.University,
-                    DepartmentId = model.DepartmentId
-                };
-                var createduser = await _userManager.CreateAsync(user, model.Password);
-                if (createduser.Succeeded)
-                {
-                    var Role = await _userManager.AddToRoleAsync(user, "Staff");
-                    if (Role.Succeeded)
-                    {
-
-                        return Ok($"registerd is successful ");
-                    }
-                    else { return StatusCode(500, new { errors = Role.Errors.Select(e => e.Description) }); }
-                }
-                else { return StatusCode(500, new { errors = createduser.Errors.Select(e => e.Description) }); }
-            }
-            catch (Exception ex)
-            {
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { error = ex.Message, innerError = innerMessage, stackTrace = ex.InnerException?.StackTrace });
-            }
+            if (!ModelState.IsValid) return BadRequest();
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.SignupAsStaffAsync(model, imagePath);
+            if (result.Succeeded) return Ok("Registered successful");
+            return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
+
         [AllowAnonymous]
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginDto login)
         {
             if (!ModelState.IsValid) return BadRequest();
-            
-            // Load user with refresh tokens
-            var user = await _context.Users
-                .Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.Email == login.Email);
-            
-            if (user == null) return StatusCode(500, "password or/and email isn't true");
-            
-            var model = await _signInManager.CheckPasswordSignInAsync(user, login.Password, false);
-            var VerifiedUser = await _userManager.IsEmailConfirmedAsync(user);
-            if (!model.Succeeded && !VerifiedUser) return StatusCode(500, "password or/and email isn't true");
-            
-            var response = await _tokenServices.GenerateToken(user);
+            var response = await _accountRepo.LoginAsync(login);
+            if (response == null || !response.IsAuthenticated) return StatusCode(500, "password or/and email isn't true or account is deactivated");
+
+            if (!string.IsNullOrEmpty(response.RefreshToken))
+            {
+                _tokenServices.SetRefreshTokenInCookies(response.RefreshToken, response.RefreshTokenExpiration);
+            }
+
             return Ok(response);
         }
-        //[Authorize]
-        [HttpGet("GetDoctors")]
-        public async Task<IActionResult> GetDoctors()
-        {
-            var Doctors = await _context.Doctors.AsNoTracking()
-                .Include(d => d.Department).ToListAsync() ?? throw new Exception("Doctors not found");
 
-            var DoctorsDto = Doctors.Select(p => p.ToGetDoctorsDto()).ToList();
-            return Ok(DoctorsDto);
+        [HttpGet("GetDoctors")]
+        public async Task<IActionResult> GetDoctors() => Ok(await _accountRepo.GetDoctorsAsync());
+
+        [AllowAnonymous]
+        [HttpPost("RefreshToken")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var response = await _accountRepo.RefreshTokenAsync();
+            if (response == null || !response.IsAuthenticated)
+                return BadRequest("Invalid token");
+
+            _tokenServices.SetRefreshTokenInCookies(response.RefreshToken!, response.RefreshTokenExpiration);
+            return Ok(response);
         }
-        //[Authorize]
+
         [HttpGet("GetDoctors/id")]
         public async Task<IActionResult> GetDoctorById(string id)
         {
-            var Doctor = await _context.Doctors.AsNoTracking().Include(d => d.Department).FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new Exception("Doctor not found");
-
-            var DoctorsDto = Doctor.ToGetDoctorsDto();
-            return Ok(DoctorsDto);
+            var result = await _accountRepo.GetDoctorByIdAsync(id);
+            if (result == null) return NotFound("Doctor not found");
+            return Ok(result);
         }
-        //[Authorize]
+
         [HttpGet("GetStaff")]
-        public async Task<IActionResult> GetStaff()
-        {
-            var Staffs = await _context.Staffs.AsNoTracking()
-                .Include(d => d.Department).ToListAsync()
-                ?? throw new Exception("Staff not found");
+        public async Task<IActionResult> GetStaff() => Ok(await _accountRepo.GetStaffAsync());
 
-            var StaffDto = Staffs.Select(p => p.ToGetStaffsDto()).ToList();
-            return Ok(StaffDto);
-        }
-        //[Authorize]
         [HttpGet("GetStaff/id")]
         public async Task<IActionResult> GetStaffById(string id)
         {
-            var Staff = await _context.Staffs.AsNoTracking()
-                .Include(d => d.Department).FirstOrDefaultAsync(d => d.Id == id)
-                ?? throw new Exception("Staff not found");
-
-            var StaffDto = Staff.ToGetStaffsDto();
-            return Ok(StaffDto);
+            var result = await _accountRepo.GetStaffByIdAsync(id);
+            if (result == null) return NotFound("Staff not found");
+            return Ok(result);
         }
-        //[Authorize]
+
         [HttpGet("GetPatients")]
-        public async Task<IActionResult> GetPatients()
-        {
-            var Patients = await _context.Patients.AsNoTracking()
-                .Include(d => d.Departments).ToListAsync()
-                ?? throw new Exception("Patients not found");
+        public async Task<IActionResult> GetPatients() => Ok(await _accountRepo.GetPatientsAsync());
 
-            var PatientsDto = Patients.Select(p => p.ToGetPatientsDto()).ToList();
-            return Ok(PatientsDto);
-        }
-        //[Authorize]
         [HttpGet("GetPatients/id")]
         public async Task<IActionResult> GetPatientById(string id)
         {
-            var Patient = await _context.Patients.AsNoTracking()
-                .Include(d => d.Departments).FirstOrDefaultAsync(d => d.Id == id)
-                ?? throw new Exception("Patient not found");
+            var result = await _accountRepo.GetPatientByIdAsync(id);
+            if (result == null) return NotFound("Patient not found");
+            return Ok(result);
+        }
 
-            var PatientDto = Patient.ToGetPatientsDto();
-            return Ok(PatientDto);
-        }
-        //[Authorize]
         [HttpGet("GetSubAdmins")]
-        public async Task<IActionResult> GetSubAdmins()
-        {
-            var SubAdmins = await _userManager.GetUsersInRoleAsync("SubAdmin");
-            var SubAdminsDto = SubAdmins.Select(s => s.ToGetSubAdminsDto()).ToList();
-            return Ok(SubAdminsDto);
-        }
-        //[Authorize]
+        public async Task<IActionResult> GetSubAdmins() => Ok(await _accountRepo.GetSubAdminsAsync());
+
         [HttpGet("GetSubAdmins/id")]
         public async Task<IActionResult> GetSubAdminById(string id)
         {
-            var subAdmins = await _userManager.GetUsersInRoleAsync("SubAdmin");
-            var SubAdmin = subAdmins.FirstOrDefault(d => d.Id == id) ?? throw new Exception("SubAdmin not found");
-            var SubAdminDto = SubAdmin.ToGetSubAdminsDto();
-            return Ok(SubAdminDto);
+            var result = await _accountRepo.GetSubAdminByIdAsync(id);
+            if (result == null) return NotFound("SubAdmin not found");
+            return Ok(result);
         }
+
         [Authorize]
         [HttpPost("LogOut")]
         public async Task<IActionResult> LogOut()
         {
-            await _signInManager.SignOutAsync();
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return BadRequest("not found");
-            var refreshtoken = await _tokenServices.RevokeRefreshToken();
-            await _userManager.UpdateSecurityStampAsync(user);
-            return Ok("log Out succesfully");
+            var result = await _accountRepo.LogOutAsync();
+            if (result) return Ok("Log Out successfully");
+            return BadRequest("Could not log out");
+        }
+
+        [HttpDelete("doctor/{userId}")]
+        public async Task<IActionResult> DeleteDoctor(string userId)
+        {
+            if (await _accountRepo.DeleteDoctorAsync(userId)) return Ok("Doctor soft-deleted successfully");
+            return NotFound("Doctor not found");
+        }
+
+        [HttpDelete("patient/{userId}")]
+        public async Task<IActionResult> DeletePatient(string userId)
+        {
+            if (await _accountRepo.DeletePatientAsync(userId)) return Ok("Patient soft-deleted successfully");
+            return NotFound("Patient not found");
+        }
+
+        [HttpDelete("staff/{userId}")]
+        public async Task<IActionResult> DeleteStaff(string userId)
+        {
+            if (await _accountRepo.DeleteStaffAsync(userId)) return Ok("Staff soft-deleted successfully");
+            return NotFound("Staff not found");
+        }
+
+        [HttpDelete("subadmin/{userId}")]
+        public async Task<IActionResult> DeleteSubAdmin(string userId)
+        {
+            if (await _accountRepo.DeleteSubAdminAsync(userId)) return Ok("SubAdmin soft-deleted successfully");
+            return NotFound("SubAdmin not found");
+        }
+
+        [HttpPost("ReturnFromDelete/{userId}")]
+        public async Task<IActionResult> ReturnFromDelete(string userId)
+        {
+            if (await _accountRepo.ReturnFromDeleteAsync(userId)) return Ok("Account returned from delete successfully");
+            return NotFound("User not found");
+        }
+
+        [HttpPost("deactivate/{userId}")]
+        public async Task<IActionResult> DeactivateAccount(string userId)
+        {
+            if (await _accountRepo.DeactivateAccountAsync(userId)) return Ok("Account deactivated successfully");
+            return NotFound("User not found");
+        }
+
+        [HttpPost("activate/{userId}")]
+        public async Task<IActionResult> ActivateAccount(string userId)
+        {
+            if (await _accountRepo.ActivateAccountAsync(userId)) return Ok("Account activated successfully");
+            return NotFound("User not found");
+        }
+
+        [HttpGet("deleted-doctors")]
+        public async Task<IActionResult> GetDeletedDoctors() => Ok(await _accountRepo.GetDeletedDoctorsAsync());
+
+        [HttpGet("deleted-patients")]
+        public async Task<IActionResult> GetDeletedPatients() => Ok(await _accountRepo.GetDeletedPatientsAsync());
+
+        [HttpGet("deactivated-users")]
+        public async Task<IActionResult> GetDeactivatedUsers() => Ok(await _accountRepo.GetDeactivatedUsersAsync());
+
+        //[Authorize(Roles = "Patient")]
+        [HttpPut("UpdatePatientProfile")]
+        public async Task<IActionResult> UpdatePatientProfile([FromForm] UPdatePatientProfileDto model)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.UpdatePatientProfileAsync(userId, model, imagePath);
+
+            if (result.Succeeded) return Ok("Profile updated successfully");
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        //[Authorize(Roles = "Doctor")]
+        [HttpPut("UpdateDoctorProfile")]
+        public async Task<IActionResult> UpdateDoctorProfile([FromForm] UpdateDoctorProfileDto model)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.UpdateDoctorProfileAsync(userId, model, imagePath);
+
+            if (result.Succeeded) return Ok("Profile updated successfully");
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        //[Authorize(Roles = "Staff")]
+        [HttpPut("UpdateStaffProfile")]
+        public async Task<IActionResult> UpdateStaffProfile([FromForm] UpdateStaffProfileDto model)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.UpdateStaffProfileAsync(userId, model, imagePath);
+
+            if (result.Succeeded) return Ok("Profile updated successfully");
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        //[Authorize(Roles = "Admin,SubAdmin")]
+        [HttpPut("UpdateAdminProfile")]
+        public async Task<IActionResult> UpdateAdminProfile([FromForm] UpdateAdminProfileDto model)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.UpdateAdminProfileAsync(userId, model, imagePath);
+
+            if (result.Succeeded) return Ok("Profile updated successfully");
+            return BadRequest(result.Errors.Select(e => e.Description));
         }
     }
 }

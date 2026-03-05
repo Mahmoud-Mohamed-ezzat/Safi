@@ -9,5 +9,6 @@ namespace Safi.Interfaces
         Task<Doctor?> GetByIdAsync(string doctorId);
         Task<List<GetPatientsDto>> GetallpatientsdealwithDoctor(string doctorId);
         Task<List<GetPatientsDto>> GetallpatientsdealwithDoctorReservation(string doctorId);
+        Task<bool> DeleteDoctorAsync(string doctorId);
     }
 }

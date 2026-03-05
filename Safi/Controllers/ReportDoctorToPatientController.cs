@@ -16,10 +16,11 @@ namespace Safi.Controllers
         private readonly IEmailService _emailService;
         private readonly UserManager<User> _userManager;
 
-        public ReportDoctorToPatientController(IReportDoctorToPatient repo, IEmailService emailService)
+        public ReportDoctorToPatientController(IReportDoctorToPatient repo, IEmailService emailService, UserManager<User> userManager)
         {
             _repo = repo;
             _emailService = emailService;
+            _userManager = userManager;
         }
 
         [HttpGet]

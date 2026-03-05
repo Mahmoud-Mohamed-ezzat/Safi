@@ -20,47 +20,58 @@ namespace Safi.Repositories
 
         public async Task<List<GetPatientsDto>> GetallpatientsdealwithDoctor(string doctorId)
         {
-           var Doctor =await _context.Doctors.FirstOrDefaultAsync(d => d.Id == doctorId);
-           if (Doctor == null)
-           {
-               return null;
-           }
-           var Reports = await _context.ReportDoctorToPatients.Include(p => p.Patient).Where(p => p.DoctorId == doctorId).ToListAsync();
-           var Patients = Reports.Select(r =>r.Patient).ToList();
-          return Patients.Select(p => new GetPatientsDto
-          {
-              Id = p.Id,
-              Name = p.Name,
-              Email = p.Email,
-              Phone = p.PhoneNumber,
-              Image=p.Image,
-              History=p.History,
-              HasSugar=p.HasSugar,
-              HasPressure=p.HasPressure,
-              Departments=p.Departments.Select(d => new DepartmentInfoDto
-              {
-                  Id = d.Id,
-                  Name = d.Name,      
-              }).ToList(),
-          }).GroupBy(p => p.Id).Select(g => g.First()).ToList();
+            var Doctor = await _context.Doctors.IgnoreQueryFilters().FirstOrDefaultAsync(d => d.Id == doctorId);
+            if (Doctor == null)
+            {
+                return null;
+            }
+            var Reports = await _context.ReportDoctorToPatients.IgnoreQueryFilters().Include(p => p.Patient).Where(p => p.DoctorId == doctorId).ToListAsync();
+            var Patients = Reports.Select(r => r.Patient).ToList();
+            return Patients.Select(p => new GetPatientsDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Email = p.Email,
+                Phone = p.PhoneNumber,
+                Image = p.Image,
+                History = p.History,
+                HasSugar = p.HasSugar,
+                HasPressure = p.HasPressure,
+                IsDeleted = p.IsDeleted,
+                IsActive = p.IsActive,
+                Departments = p.Departments.Select(d => new DepartmentInfoDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                }).ToList(),
+            }).GroupBy(p => p.Id).Select(g => g.First()).ToList();
         }
         public async Task<List<GetPatientsDto>> GetallpatientsdealwithDoctorReservation(string doctorId)
         {
-            var doctor = await _context.Doctors
-                .Include(d => d.Reservations)
-                .FirstOrDefaultAsync(d => d.Id == doctorId);
+            var doctor = await _context.Doctors.IgnoreQueryFilters()
+                    .Include(d => d.Reservations)
+                    .Include(d => d.Department)
+                    .FirstOrDefaultAsync(d => d.Id == doctorId);
             if (doctor?.Reservations == null)
                 return null;
-          var Reservations = await _context.Reservations
+
+            var Reservations = await _context.Reservations.IgnoreQueryFilters()
                 .Include(r => r.Patient)
                 .Where(r => r.DoctorId == doctorId)
                 .ToListAsync();
-           var patients = Reservations.Select(r => r.Patient).ToList();
-           return patients.Select(p => p.ToGetPatientsDto()).GroupBy(p => p.Id).Select(g => g.First()).ToList();
+
+            var patients = Reservations.Select(r => r.Patient).Where(p => p != null).ToList();
+            return patients.Select(p =>
+            {
+                var dto = p.ToGetPatientsDto();
+                dto.IsDeleted = p.IsDeleted;
+                dto.IsActive = p.IsActive;
+                return dto;
+            }).GroupBy(p => p.Id).Select(g => g.First()).ToList();
         }
         public async Task<Doctor?> GetByIdAsync(string doctorId)
         {
-            return await _context.Doctors
+            return await _context.Doctors.IgnoreQueryFilters()
                 .Include(d => d.Department)
                 .FirstOrDefaultAsync(d => d.Id == doctorId);
         }
@@ -77,6 +88,80 @@ namespace Safi.Repositories
             float totalPoints = (doctor.Rank * doctor.RankCount) + rating;
             doctor.RankCount++;
             doctor.Rank = totalPoints / doctor.RankCount;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteDoctorAsync(string doctorId)
+        {
+            var doctor = await _context.Doctors
+                .Include(d => d.Department)
+                .FirstOrDefaultAsync(d => d.Id == doctorId);
+
+            if (doctor == null) return false;
+
+            doctor.IsDeleted = true;
+
+            // 1. Delete future reservations
+            var futureReservations = _context.Reservations.Where(r => r.DoctorId == doctorId && r.Time > DateTime.Now);
+            _context.Reservations.RemoveRange(futureReservations);
+
+            // 2. Close active room assignments
+            var activeAssignments = _context.AssignRoomToDoctors.Where(a => a.DoctorId == doctorId && (a.EndDate == null || a.EndDate > DateOnly.FromDateTime(DateTime.Now)));
+            foreach (var assignment in activeAssignments)
+            {
+                assignment.EndDate = DateOnly.FromDateTime(DateTime.Now);
+            }
+
+            // 3. Reassign active appointments
+            var activeAppointments = await _context.AppointmentToRooms
+                .Where(a => a.DoctorId == doctorId && a.EndTime == null)
+                .ToListAsync();
+
+            foreach (var appointment in activeAppointments)
+            {
+                // Try priority 1: Another doctor in the same room right now
+                var anotherDoctorInRoom = await _context.AssignRoomToDoctors
+                    .Where(a => a.RoomId == appointment.RoomId && a.DoctorId != doctorId && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
+                    .Select(a => a.DoctorId)
+                    .FirstOrDefaultAsync();
+
+                if (anotherDoctorInRoom != null)
+                {
+                    appointment.DoctorId = anotherDoctorInRoom;
+                }
+                else
+                {
+                    // Try priority 2: Doctor in same shift and department
+                    // Need to find which shift the current time falls into or which shift the doctor was assigned to
+                    var currentShift = await _context.AssignRoomToDoctors
+                        .Where(a => a.DoctorId == doctorId && a.RoomId == appointment.RoomId)
+                        .Select(a => a.ShiftId)
+                        .FirstOrDefaultAsync();
+
+                    var fallbackDoctor = await _context.AssignRoomToDoctors
+                        .Include(a => a.Doctor)
+                        .Where(a => a.ShiftId == currentShift
+                                    && a.DoctorId != doctorId
+                                    && a.Doctor != null
+                                    && doctor.DepartmentId != null
+                                    && a.Doctor.DepartmentId == doctor.DepartmentId
+                                    && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
+                        .Select(a => a.DoctorId)
+                        .FirstOrDefaultAsync();
+
+                    if (fallbackDoctor != null)
+                    {
+                        appointment.DoctorId = fallbackDoctor;
+                    }
+                    else
+                    {
+                        // Priority 3: Null
+                        appointment.DoctorId = null;
+                    }
+                }
+            }
 
             await _context.SaveChangesAsync();
             return true;
