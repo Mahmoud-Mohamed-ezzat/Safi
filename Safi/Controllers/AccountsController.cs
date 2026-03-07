@@ -214,7 +214,7 @@ namespace Safi.Controllers
         [HttpGet("GetStaff")]
         public async Task<IActionResult> GetStaff() => Ok(await _accountRepo.GetStaffAsync());
 
-        [HttpGet("GetStaff/id")]
+        [HttpGet("GetStaff/{id}")]
         public async Task<IActionResult> GetStaffById(string id)
         {
             var result = await _accountRepo.GetStaffByIdAsync(id);
@@ -225,7 +225,7 @@ namespace Safi.Controllers
         [HttpGet("GetPatients")]
         public async Task<IActionResult> GetPatients() => Ok(await _accountRepo.GetPatientsAsync());
 
-        [HttpGet("GetPatients/id")]
+        [HttpGet("GetPatients/{id}")]
         public async Task<IActionResult> GetPatientById(string id)
         {
             var result = await _accountRepo.GetPatientByIdAsync(id);
@@ -236,7 +236,7 @@ namespace Safi.Controllers
         [HttpGet("GetSubAdmins")]
         public async Task<IActionResult> GetSubAdmins() => Ok(await _accountRepo.GetSubAdminsAsync());
 
-        [HttpGet("GetSubAdmins/id")]
+        [HttpGet("GetSubAdmins/{id}")]
         public async Task<IActionResult> GetSubAdminById(string id)
         {
             var result = await _accountRepo.GetSubAdminByIdAsync(id);
@@ -319,7 +319,7 @@ namespace Safi.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
-            var result = await _accountRepo.UpdatePatientProfileAsync(userId, model, imagePath);
+            var result = await _accountRepo.UpdatePatientProfileAsync(model, imagePath);
 
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));
@@ -333,7 +333,7 @@ namespace Safi.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
-            var result = await _accountRepo.UpdateDoctorProfileAsync(userId, model, imagePath);
+            var result = await _accountRepo.UpdateDoctorProfileAsync(model, imagePath);
 
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));
@@ -347,7 +347,7 @@ namespace Safi.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
-            var result = await _accountRepo.UpdateStaffProfileAsync(userId, model, imagePath);
+            var result = await _accountRepo.UpdateStaffProfileAsync(model, imagePath);
 
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));
@@ -361,7 +361,7 @@ namespace Safi.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
-            var result = await _accountRepo.UpdateAdminProfileAsync(userId, model, imagePath);
+            var result = await _accountRepo.UpdateAdminProfileAsync(model, imagePath);
 
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));
