@@ -456,7 +456,7 @@ namespace Safi.Repositories
 
         public async Task<IdentityResult> UpdatePatientProfileAsync(UPdatePatientProfileDto model, string? imagePath)
         {
-            var user = await _context.Patients.FirstOrDefaultAsync(u => u.Id == ClaimTypes.NameIdentifier);
+            var user = await _context.Patients.FirstOrDefaultAsync(u => u.Id == model.Id);
             if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Patient not found" });
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
