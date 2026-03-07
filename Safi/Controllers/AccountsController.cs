@@ -203,7 +203,7 @@ namespace Safi.Controllers
             return Ok(response);
         }
 
-        [HttpGet("GetDoctors/id")]
+        [HttpGet("GetDoctors/{id}")]
         public async Task<IActionResult> GetDoctorById(string id)
         {
             var result = await _accountRepo.GetDoctorByIdAsync(id);
