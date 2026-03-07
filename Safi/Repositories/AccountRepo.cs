@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Account;
@@ -453,9 +454,9 @@ namespace Safi.Repositories
             return await _tokenService.RotateBothTokensAsync();
         }
 
-        public async Task<IdentityResult> UpdatePatientProfileAsync(string userId, UPdatePatientProfileDto model, string? imagePath)
+        public async Task<IdentityResult> UpdatePatientProfileAsync(UPdatePatientProfileDto model, string? imagePath)
         {
-            var user = await _context.Patients.FirstOrDefaultAsync(p => p.Id == userId);
+            var user = await _context.Patients.FirstOrDefaultAsync(u => u.Id == ClaimTypes.NameIdentifier);
             if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Patient not found" });
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
@@ -475,16 +476,15 @@ namespace Safi.Repositories
             return await _userManager.UpdateAsync(user);
         }
 
-        public async Task<IdentityResult> UpdateDoctorProfileAsync(string userId, UpdateDoctorProfileDto model, string? imagePath)
+        public async Task<IdentityResult> UpdateDoctorProfileAsync(UpdateDoctorProfileDto model, string? imagePath)
         {
-            var user = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == userId);
+            var user = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == model.Id);
             if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Doctor not found" });
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
             if (!string.IsNullOrEmpty(model.Phone)) user.PhoneNumber = model.Phone;
             if (!string.IsNullOrEmpty(model.University)) user.University = model.University;
             if (!string.IsNullOrEmpty(model.Degree)) user.Degree = model.Degree;
-            if (model.Rank.HasValue) user.Rank = model.Rank.Value;
             if (model.DepartmentId.HasValue) user.DepartmentId = model.DepartmentId.Value;
             if (imagePath != null) user.Image = imagePath;
 
@@ -498,9 +498,9 @@ namespace Safi.Repositories
             return await _userManager.UpdateAsync(user);
         }
 
-        public async Task<IdentityResult> UpdateStaffProfileAsync(string userId, UpdateStaffProfileDto model, string? imagePath)
+        public async Task<IdentityResult> UpdateStaffProfileAsync(UpdateStaffProfileDto model, string? imagePath)
         {
-            var user = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == userId);
+            var user = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == model.Id);
             if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Staff not found" });
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
@@ -519,9 +519,9 @@ namespace Safi.Repositories
             return await _userManager.UpdateAsync(user);
         }
 
-        public async Task<IdentityResult> UpdateAdminProfileAsync(string userId, UpdateAdminProfileDto model, string? imagePath)
+        public async Task<IdentityResult> UpdateAdminProfileAsync(UpdateAdminProfileDto model, string? imagePath)
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _userManager.FindByIdAsync(model.Id);
             if (user == null) return IdentityResult.Failed(new IdentityError { Description = "User not found" });
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;

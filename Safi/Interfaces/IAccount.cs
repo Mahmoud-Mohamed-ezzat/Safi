@@ -40,9 +40,9 @@ namespace Safi.Interfaces
         Task<User?> ExternalLoginCallbackAsync(ExternalLoginInfo info, string? imagePath);
         Task<ResponseOfLogin?> RefreshTokenAsync();
 
-        Task<IdentityResult> UpdatePatientProfileAsync(string userId, UPdatePatientProfileDto model, string? imagePath);
-        Task<IdentityResult> UpdateDoctorProfileAsync(string userId, UpdateDoctorProfileDto model, string? imagePath);
-        Task<IdentityResult> UpdateStaffProfileAsync(string userId, UpdateStaffProfileDto model, string? imagePath);
-        Task<IdentityResult> UpdateAdminProfileAsync(string userId, UpdateAdminProfileDto model, string? imagePath);
+        Task<IdentityResult> UpdatePatientProfileAsync(UPdatePatientProfileDto model, string? imagePath);
+        Task<IdentityResult> UpdateDoctorProfileAsync(UpdateDoctorProfileDto model, string? imagePath);
+        Task<IdentityResult> UpdateStaffProfileAsync(UpdateStaffProfileDto model, string? imagePath);
+        Task<IdentityResult> UpdateAdminProfileAsync(UpdateAdminProfileDto model, string? imagePath);
     }
 }
