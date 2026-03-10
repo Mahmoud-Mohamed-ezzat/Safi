@@ -51,5 +51,32 @@ namespace Safi.Controllers
         {
             return Ok(await _repo.GetResponsibleDoctorsForPatientAsync(patientId));
         }
+
+        [HttpGet("heart/icus")]
+        public async Task<ActionResult<int>> GetHeartICUs() => Ok(await _repo.GetNumberofHeartICUs());
+
+        [HttpGet("kidney/icus")]
+        public async Task<ActionResult<int>> GetKidneyICUs() => Ok(await _repo.GetNumberofKidneyICUs());
+
+        [HttpGet("liver/icus")]
+        public async Task<ActionResult<int>> GetLiverICUs() => Ok(await _repo.GetNumberofLiverICus());
+
+        [HttpGet("heart/rooms")]
+        public async Task<ActionResult<int>> GetHeartRooms() => Ok(await _repo.GetNumberofHeartRooms());
+
+        [HttpGet("kidney/rooms")]
+        public async Task<ActionResult<int>> GetKidneyRooms() => Ok(await _repo.GetNumberofKidneyRooms());
+
+        [HttpGet("liver/rooms")]
+        public async Task<ActionResult<int>> GetLiverRooms() => Ok(await _repo.GetNumberofLiverRooms());
+
+        [HttpGet("heart/emergencies")]
+        public async Task<ActionResult<int>> GetHeartEmergencies() => Ok(await _repo.GetNumberofHeartEmergencies());
+
+        [HttpGet("kidney/emergencies")]
+        public async Task<ActionResult<int>> GetKidneyEmergencies() => Ok(await _repo.GetNumberofKidneyEmergencies());
+
+        [HttpGet("liver/emergencies")]
+        public async Task<ActionResult<int>> GetLiverEmergencies() => Ok(await _repo.GetNumberofLiverEmergencies());
     }
 }

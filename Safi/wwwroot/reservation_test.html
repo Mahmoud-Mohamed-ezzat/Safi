@@ -197,6 +197,19 @@
             border-color: var(--accent);
         }
 
+        .slot.selected {
+            border-color: var(--accent);
+            background: rgba(0, 212, 170, 0.1);
+            box-shadow: 0 0 15px rgba(0, 212, 170, 0.3);
+        }
+
+        .slot-radio {
+            margin-bottom: 10px;
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
+        }
+
         .slot-time {
             font-size: 1.2rem;
             font-weight: 600;
@@ -280,6 +293,10 @@
             <div id="slotsContainer" class="slots-grid">
                 <p style="color: var(--text-muted);">Connect and load slots to see available times</p>
             </div>
+            <div id="reservationActions" style="margin-top: 30px; text-align: center; display: none;">
+                <button class="btn btn-primary" id="confirmReservationBtn" onclick="confirmReservation()"
+                    style="padding: 15px 40px; font-size: 1.1rem;">Confirm Reservation</button>
+            </div>
         </div>
 
         <div class="card">
@@ -293,6 +310,7 @@
         let currentPatientId = '';
         let currentDoctorId = '';
         let currentDay = '';
+        let selectedSlotId = null;
 
         function log(message, type = 'info') {
             const logDiv = document.getElementById('log');
@@ -372,16 +390,51 @@
             await connection.invoke('JoinDoctorDayGroup', currentDoctorId, currentDay);
             log(`Joined group: ${currentDoctorId}_${currentDay}`, 'success');
             document.getElementById('loadSlotsBtn').disabled = false;
+            // Auto-load slots on connect/join
+            await loadSlots();
         }
 
         async function loadSlots() {
             log('Loading available slots...', 'info');
+            selectedSlotId = null;
+            document.getElementById('reservationActions').style.display = 'none';
             await connection.invoke('GetAvailableSlots', currentDoctorId, currentDay);
         }
 
+        function selectSlot(reservationId) {
+            selectedSlotId = reservationId;
+
+            // Update UI for selection
+            document.querySelectorAll('.slot').forEach(s => {
+                if (s.dataset.id == reservationId) {
+                    s.classList.add('selected');
+                    const radio = s.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = true;
+                } else {
+                    s.classList.remove('selected');
+                    const radio = s.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = false;
+                }
+            });
+
+            // Show confirm button
+            document.getElementById('reservationActions').style.display = 'block';
+            log(`Selected slot #${reservationId}. Click 'Confirm Reservation' to book.`, 'info');
+        }
+
+        async function confirmReservation() {
+            if (!selectedSlotId) {
+                log('Please select a slot first', 'error');
+                return;
+            }
+            log(`Attempting to reserve slot #${selectedSlotId}...`, 'info');
+            await connection.invoke('ReserveSlot', selectedSlotId, currentPatientId);
+            document.getElementById('reservationActions').style.display = 'none';
+        }
+
         async function reserveSlot(reservationId) {
-            log(`Attempting to reserve slot #${reservationId}...`, 'info');
-            await connection.invoke('ReserveSlot', reservationId, currentPatientId);
+            // Keep this for backward compatibility if needed, but we use selectSlot now
+            selectSlot(reservationId);
         }
 
         function renderSlots(slots) {
@@ -412,7 +465,8 @@
                 const canClick = !isReserved && !hasMyReservation;
 
                 return `
-                    <div class="${className}" data-id="${slot.id}" ${canClick ? `onclick="reserveSlot(${slot.id})"` : ''}>
+                    <div class="${className}" data-id="${slot.id}" ${canClick ? `onclick="selectSlot(${slot.id})"` : ''}>
+                        <input type="radio" name="slotSelect" class="slot-radio" ${isMine ? 'checked' : ''} ${!canClick ? 'disabled' : ''}>
                         <div class="slot-time">${time}</div>
                         <div class="slot-status">
                             ${isReserved ? (isMine ? '✅ Your Reservation' : `❌ Reserved`) : (hasMyReservation ? '🔒 Locked' : '🟢 Available')}
@@ -438,13 +492,24 @@
 
                 // If I just made a reservation, disable all other available slots
                 if (isMine) {
+                    selectedSlotId = reservationId;
+                    document.getElementById('reservationActions').style.display = 'none';
                     const allSlots = document.querySelectorAll('.slot');
                     allSlots.forEach(s => {
-                        if (s.dataset.id != reservationId && !s.classList.contains('reserved')) {
-                            s.classList.add('reserved'); // Look disabled
-                            s.onclick = null; // Remove click
-                            const st = s.querySelector('.slot-status');
-                            if (st) st.textContent = '🔒 Locked';
+                        const radio = s.querySelector('input[type="radio"]');
+                        if (s.dataset.id != reservationId) {
+                            if (!s.classList.contains('reserved')) {
+                                s.classList.add('reserved');
+                                s.onclick = null;
+                                const st = s.querySelector('.slot-status');
+                                if (st) st.textContent = '🔒 Locked';
+                            }
+                            if (radio) radio.disabled = true;
+                        } else {
+                            if (radio) {
+                                radio.checked = true;
+                                radio.disabled = false;
+                            }
                         }
                     });
                 }

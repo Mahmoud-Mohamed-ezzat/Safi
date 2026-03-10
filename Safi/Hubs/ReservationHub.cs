@@ -79,6 +79,21 @@ public class ReservationHub : Hub
             return;
         }
 
+        // 1-force user to reserve just one block no more
+        var existingReservation = await _context.Reservations
+            .AnyAsync(r => r.PatientId == patientId && r.Status == "Reserved");
+
+        if (existingReservation)
+        {
+            await Clients.Caller.SendAsync("ReservationResult", new
+            {
+                Success = false,
+                Message = "You already have an active reservation. You cannot reserve more than one slot.",
+                ReservationId = reservationId
+            });
+            return;
+        }
+
         try
         {
             // Use patientId parameter (not reservation.PatientId which may be null/old value)

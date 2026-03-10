@@ -130,5 +130,24 @@ namespace Safi.Repositories
                 DepartmentName = d.Department?.Name ?? "Unknown"
             }).ToList();
         }
+
+        private async Task<int> GetRoomCountAsync(string roomType, int departmentId)
+        {
+            return await _context.Rooms
+                .Where(r => EF.Property<string>(r, "RoomType") == roomType && r.DepartmentId == departmentId && r.Status == RoomStatus.Available)
+                .CountAsync();
+        }
+
+        public async Task<int> GetNumberofHeartICUs() => await GetRoomCountAsync("Icu", 1);
+        public async Task<int> GetNumberofKidneyICUs() => await GetRoomCountAsync("Icu", 2);
+        public async Task<int> GetNumberofLiverICus() => await GetRoomCountAsync("Icu", 3);
+
+        public async Task<int> GetNumberofHeartRooms() => await GetRoomCountAsync("NormalRoom", 1);
+        public async Task<int> GetNumberofKidneyRooms() => await GetRoomCountAsync("NormalRoom", 2);
+        public async Task<int> GetNumberofLiverRooms() => await GetRoomCountAsync("NormalRoom", 3);
+
+        public async Task<int> GetNumberofHeartEmergencies() => await GetRoomCountAsync("Emergency", 1);
+        public async Task<int> GetNumberofKidneyEmergencies() => await GetRoomCountAsync("Emergency", 2);
+        public async Task<int> GetNumberofLiverEmergencies() => await GetRoomCountAsync("Emergency", 3);
     }
 }
