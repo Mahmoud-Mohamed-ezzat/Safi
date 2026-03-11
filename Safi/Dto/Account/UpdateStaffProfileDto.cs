@@ -10,6 +10,7 @@ namespace Safi.Dto.Account
         [EmailAddress]
         public string? Email { get; set; }
         public string? Phone { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
         public string? University { get; set; }
         public int? DepartmentId { get; set; }
         public IFormFile? Image { get; set; }

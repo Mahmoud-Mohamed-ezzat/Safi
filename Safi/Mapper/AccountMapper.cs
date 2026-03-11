@@ -18,7 +18,9 @@ namespace Safi.Mapper
                 University = doctor.University,
                 Degree = doctor.Degree,
                 Rank = doctor.Rank,
+                DateOfBirth = doctor.DateOfBirth,
                 DepartmentId = doctor.DepartmentId,
+                Gender = doctor.Gender,
                 DepartmentName = doctor.Department?.Name ?? "",
                 IsDeleted = doctor.IsDeleted,
                 IsActive = doctor.IsActive
@@ -35,7 +37,9 @@ namespace Safi.Mapper
                 Phone = staff.PhoneNumber ?? "",
                 University = staff.University ?? "",
                 DepartmentId = staff.DepartmentId,
+                Gender = staff.Gender,
                 DepartmentName = staff.Department?.Name ?? "",
+                DateOfBirth = staff.DateOfBirth,
                 IsDeleted = staff.IsDeleted,
                 IsActive = staff.IsActive
             };
@@ -49,6 +53,8 @@ namespace Safi.Mapper
                 Image = patient.Image ?? null,
                 Email = patient.Email ?? null,
                 Phone = patient.PhoneNumber ?? null,
+                DateOfBirth = patient.DateOfBirth,
+                Gender = patient.Gender,
                 HasSugar = patient.HasSugar,
                 History = patient.History ?? "",
                 HasPressure = patient.HasPressure,
@@ -70,6 +76,8 @@ namespace Safi.Mapper
                 Name = user.Name,
                 Image = user.Image ?? "",
                 Email = user.Email ?? "",
+                DateOfBirth = user.DateOfBirth,
+                Gender = user.Gender,
                 Phone = user.PhoneNumber ?? "",
                 IsDeleted = user.IsDeleted,
                 IsActive = user.IsActive

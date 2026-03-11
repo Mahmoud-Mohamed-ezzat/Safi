@@ -11,6 +11,7 @@ using Safi.Mapper;
 using Safi.Models;
 using Safi.Services;
 
+
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 
@@ -25,6 +26,7 @@ namespace Safi.Controllers
         readonly TokenService _tokenServices;
         readonly ImageService _imageService;
         readonly IAccount _accountRepo;
+        readonly SafiContext _context;
         readonly IWebHostEnvironment _env;
 
         public AccountsController(
@@ -33,10 +35,12 @@ namespace Safi.Controllers
             TokenService tokenServices,
             ImageService imageService,
             IAccount accountRepo,
+            SafiContext context,
             IWebHostEnvironment env)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _context = context;
             _tokenServices = tokenServices;
             _imageService = imageService;
             _accountRepo = accountRepo;
@@ -315,8 +319,8 @@ namespace Safi.Controllers
         [HttpPut("UpdatePatientProfile")]
         public async Task<IActionResult> UpdatePatientProfile([FromForm] UPdatePatientProfileDto model)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userId = await _accountRepo.GetPatientByIdAsync(model.Id);
+            if (userId == null) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
             var result = await _accountRepo.UpdatePatientProfileAsync(model, imagePath);
@@ -329,8 +333,8 @@ namespace Safi.Controllers
         [HttpPut("UpdateDoctorProfile")]
         public async Task<IActionResult> UpdateDoctorProfile([FromForm] UpdateDoctorProfileDto model)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userId = await _accountRepo.GetDoctorByIdAsync(model.Id);
+            if (userId == null) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
             var result = await _accountRepo.UpdateDoctorProfileAsync(model, imagePath);
@@ -343,8 +347,8 @@ namespace Safi.Controllers
         [HttpPut("UpdateStaffProfile")]
         public async Task<IActionResult> UpdateStaffProfile([FromForm] UpdateStaffProfileDto model)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userId = await _accountRepo.GetStaffByIdAsync(model.Id);
+            if (userId == null) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
             var result = await _accountRepo.UpdateStaffProfileAsync(model, imagePath);
@@ -357,14 +361,29 @@ namespace Safi.Controllers
         [HttpPut("UpdateAdminProfile")]
         public async Task<IActionResult> UpdateAdminProfile([FromForm] UpdateAdminProfileDto model)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userId = await _context.Users.FirstOrDefaultAsync(u => u.Id == model.Id);
+            if (userId == null) return Unauthorized();
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
             var result = await _accountRepo.UpdateAdminProfileAsync(model, imagePath);
 
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));
+        }
+        [HttpGet("GetUserHistory")]
+        public async Task<IActionResult> GetUserHistory(string userId)
+        {
+            var result = await _accountRepo.GetUserHistoryAsync(userId);
+            if (result == null) return NotFound("User not found");
+            return Ok(result);
+        }
+        
+        [HttpPut("UpdatepressureAndSugarOfPatient")]
+        public async Task<IActionResult> UpdatepressureAndSugarOfPatient([FromBody] UpdatePressureAndSugarOfPatientDto model)
+        {
+            var result = await _accountRepo.UpdatepressureAndSugarOfPatientAsync(model);
+            if (result == null) return NotFound("User not found");
+            return Ok(result);
         }
     }
 }

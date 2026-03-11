@@ -13,6 +13,7 @@ namespace Safi.Dto.Account
         public bool? HasSugar { get; set; }
         public bool? HasPressure { get; set; }
         public string? History { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
         public IFormFile? Image { get; set; }
     }
 }

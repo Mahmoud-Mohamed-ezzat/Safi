@@ -14,6 +14,7 @@ namespace Safi.Dto.Account
         public string? University { get; set; }
         public string? Degree { get; set; }
         public int? DepartmentId { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
         public IFormFile? Image { get; set; }
     }
 }

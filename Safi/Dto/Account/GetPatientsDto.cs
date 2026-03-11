@@ -8,6 +8,8 @@ namespace Safi.Dto.Account
         public string Name { get; set; }
         public string Image { get; set; }
         public string Email { get; set; }
+        public string? Gender { get; set; }
+        public DateOnly DateOfBirth { get; set; }
         public string Phone { get; set; }
         public string? History { get; set; }
         public bool? HasSugar { get; set; } // Diabetes indicator

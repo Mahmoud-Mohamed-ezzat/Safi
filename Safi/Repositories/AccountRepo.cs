@@ -52,8 +52,10 @@ namespace Safi.Repositories
             {
                 Name = model.username,
                 UserName = model.email,
+                Gender = model.Gender,
                 Email = model.email,
                 PhoneNumber = model.Phone,
+                DateOfBirth = model.DateOfBirth,
                 Image = imagePath
             };
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -76,8 +78,10 @@ namespace Safi.Repositories
             {
                 Name = model.username,
                 UserName = model.email,
+                Gender = model.Gender,
                 Email = model.email,
                 PhoneNumber = model.Phone,
+                DateOfBirth = model.DateOfBirth,
                 Image = imagePath
             };
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -94,7 +98,9 @@ namespace Safi.Repositories
             {
                 Name = model.username,
                 UserName = model.email,
+                Gender = model.Gender,
                 Email = model.email,
+                DateOfBirth = model.DateOfBirth,
                 PhoneNumber = model.Phone,
                 Image = imagePath,
                 HasSugar = model.hassugar,
@@ -114,13 +120,15 @@ namespace Safi.Repositories
             {
                 Name = model.username,
                 UserName = model.email,
+                Gender = model.Gender,
                 Email = model.email,
                 PhoneNumber = model.Phone,
                 Image = imagePath,
                 University = model.University,
                 Degree = model.Degree,
                 Rank = model.Rank,
-                DepartmentId = model.DepartmentId
+                DepartmentId = model.DepartmentId,
+                DateOfBirth = model.DateOfBirth
             };
             var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
@@ -144,6 +152,8 @@ namespace Safi.Repositories
                 UserName = model.email,
                 Email = model.email,
                 PhoneNumber = model.Phone,
+                Gender = model.Gender,
+                DateOfBirth = model.DateOfBirth,
                 Image = imagePath,
                 University = model.University,
                 DepartmentId = model.DepartmentId
@@ -463,7 +473,8 @@ namespace Safi.Repositories
             if (!string.IsNullOrEmpty(model.Phone)) user.PhoneNumber = model.Phone;
             if (model.HasSugar.HasValue) user.HasSugar = model.HasSugar.Value;
             if (model.HasPressure.HasValue) user.HasPressure = model.HasPressure.Value;
-            if (!string.IsNullOrEmpty(model.History)) user.History = model.History;
+            if (model.DateOfBirth.HasValue) user.DateOfBirth = model.DateOfBirth.Value;
+            if (!string.IsNullOrEmpty(model.History)) user.History += "\n" + model.History;
             if (imagePath != null) user.Image = imagePath;
 
             if (!string.IsNullOrEmpty(model.Email) && model.Email != user.Email)
@@ -486,6 +497,7 @@ namespace Safi.Repositories
             if (!string.IsNullOrEmpty(model.University)) user.University = model.University;
             if (!string.IsNullOrEmpty(model.Degree)) user.Degree = model.Degree;
             if (model.DepartmentId.HasValue) user.DepartmentId = model.DepartmentId.Value;
+            if (model.DateOfBirth.HasValue) user.DateOfBirth = model.DateOfBirth.Value;
             if (imagePath != null) user.Image = imagePath;
 
             if (!string.IsNullOrEmpty(model.Email) && model.Email != user.Email)
@@ -507,6 +519,7 @@ namespace Safi.Repositories
             if (!string.IsNullOrEmpty(model.Phone)) user.PhoneNumber = model.Phone;
             if (!string.IsNullOrEmpty(model.University)) user.University = model.University;
             if (model.DepartmentId.HasValue) user.DepartmentId = model.DepartmentId.Value;
+            if (model.DateOfBirth.HasValue) user.DateOfBirth = model.DateOfBirth.Value;
             if (imagePath != null) user.Image = imagePath;
 
             if (!string.IsNullOrEmpty(model.Email) && model.Email != user.Email)
@@ -526,6 +539,7 @@ namespace Safi.Repositories
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
             if (!string.IsNullOrEmpty(model.Phone)) user.PhoneNumber = model.Phone;
+            if (model.DateOfBirth.HasValue) user.DateOfBirth = model.DateOfBirth.Value;
             if (imagePath != null) user.Image = imagePath;
 
             if (!string.IsNullOrEmpty(model.Email) && model.Email != user.Email)
@@ -536,6 +550,21 @@ namespace Safi.Repositories
             }
 
             return await _userManager.UpdateAsync(user);
+        }
+
+        public async Task<IdentityResult> UpdatepressureAndSugarOfPatientAsync(UpdatePressureAndSugarOfPatientDto model)
+        {
+            var user = await _context.Patients.FirstOrDefaultAsync(u => u.Id == model.userId);
+            if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Patient not found" });
+            user.HasPressure = model.hasPressure;
+            user.HasSugar    = model.hasSugar;
+            return await _userManager.UpdateAsync(user);
+        }
+         public async Task<string?> GetUserHistoryAsync(string userId)
+        {
+            var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
+            if (patient == null) return null;
+            return patient.History;
         }
     }
 }

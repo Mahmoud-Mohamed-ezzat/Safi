@@ -7,6 +7,8 @@ namespace Safi.Dto.Account
         public string username { get; set; }
         [EmailAddress]
         public string email { get; set; }
+        public DateOnly DateOfBirth { get; set; }
+        public string? Gender { get; set; }
         public string Password { get; set; }
         public string Phone { get; set; }
         public IFormFile? Image { get; set; }

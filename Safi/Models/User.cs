@@ -10,6 +10,8 @@ namespace Safi.Models
         public int Custome_Id { get; set; }
         public string? Image { get; set; } // Profile image URL or path
         public string? Name { get; set; } // Full name
+        public string? Gender { get; set; }
+        public DateOnly DateOfBirth { get; set; }
         public bool IsDeleted { get; set; } = false;
         public bool IsActive { get; set; } = true;
         // Navigation properties
