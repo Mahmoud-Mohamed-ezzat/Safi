@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Safi.Configuration;
+using Safi.Helpers;
 using Safi.Hubs;
+using System.ComponentModel;
 using Safi.Interfaces;
 using Safi.Models;
 using Safi.Repositories;
@@ -140,6 +142,10 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddSignalR();
+
+// Allow DateOnly to accept "MM/dd/yyyy" format from form data
+TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof(DateOnlyTypeConverter)));
+
 builder.Services.AddControllers();
 builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<TokenService>();
