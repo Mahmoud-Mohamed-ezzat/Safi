@@ -15,9 +15,9 @@ namespace Safi.Interfaces
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientId(string patientId);
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorId(string doctorId);
         public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDoctorId(string patientId, string doctorId);
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateTime date);
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateTime date);
-        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateTime date);
+        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateOnly date);
+        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateOnly date);
+        public Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateOnly date);
         public Task<List<GetPatientsDto>> GetallpatientsdealwithDoctor(string doctorId);
         public Task<string?> addDepartmenttoPatientDepartmentWhenReservationIsCreated(string patientId, string doctorId);
         public Task<List<reservationInfoforgetpatientReservations>> GetAllReservations();

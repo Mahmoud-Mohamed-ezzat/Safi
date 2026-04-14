@@ -259,37 +259,37 @@ namespace Safi.Repositories
             return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateTime date)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByPatientIdAndDate(string patientId, DateOnly date)
         {
             var reservations = await _context
             .Reservations
             .Include(r => r.Doctor)
             .Include(r => r.Patient)
-            .Where(r => r.PatientId == patientId && r.Time.Date == date.Date)
+            .Where(r => r.PatientId == patientId && r.Time.Date == date.ToDateTime(TimeOnly.MinValue).Date)
             .ToListAsync();
             if (reservations == null) return null;
             return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateTime date)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDoctorIdAndDate(string doctorId, DateOnly date)
         {
             var reservations = await _context
             .Reservations
             .Include(r => r.Doctor)
             .Include(r => r.Patient)
-            .Where(r => r.DoctorId == doctorId && r.Time.Date == date.Date)
+            .Where(r => r.DoctorId == doctorId  && r.Time.Date == date.ToDateTime(TimeOnly.MinValue).Date)
             .ToListAsync();
             if (reservations == null) return null;
             return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();
         }
 
-        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateTime date)
+        public async Task<List<reservationInfoforgetpatientReservations>> GetReservationByDate(DateOnly date)
         {
             var reservations = await _context
             .Reservations
             .Include(r => r.Doctor)
             .Include(r => r.Patient)
-            .Where(r => r.Time.Date == date.Date)
+            .Where(r => r.Time.Date == date.ToDateTime(TimeOnly.MinValue).Date)
             .ToListAsync();
             if (reservations == null) return null;
             return reservations.Select(r => r.ToreservationInfoforgetpatientReservationsDto()).ToList();

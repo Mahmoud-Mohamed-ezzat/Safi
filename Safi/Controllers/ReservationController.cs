@@ -68,7 +68,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("patient/{patientId}/date/{date}")]
-        public async Task<IActionResult> GetByPatientIdAndDate(string patientId, DateTime date)
+        public async Task<IActionResult> GetByPatientIdAndDate(string patientId, DateOnly date)
         {
             var reservations = await _repo.GetReservationByPatientIdAndDate(patientId, date);
             if (reservations == null) return NotFound();
@@ -76,7 +76,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("doctor/{doctorId}/date/{date}")]
-        public async Task<IActionResult> GetByDoctorIdAndDate(string doctorId, DateTime date)
+        public async Task<IActionResult> GetByDoctorIdAndDate( string doctorId,  DateOnly date)
         {
             var reservations = await _repo.GetReservationByDoctorIdAndDate(doctorId, date);
             if (reservations == null) return NotFound();
@@ -84,7 +84,7 @@ namespace Safi.Controllers
         }
 
         [HttpGet("date/{date}")]
-        public async Task<IActionResult> GetByDate(DateTime date)
+        public async Task<IActionResult> GetByDate(DateOnly date)
         {
             var reservations = await _repo.GetReservationByDate(date);
             if (reservations == null) return NotFound();

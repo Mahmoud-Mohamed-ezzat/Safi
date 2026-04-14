@@ -16,6 +16,7 @@ using Safi.Services;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Safi.Services.AIService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,6 +149,7 @@ TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddTransient<LiverModel>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IDepartment, DepartmentRepo>();
 builder.Services.AddScoped<IReservation, ReservationRepo>();
@@ -167,6 +169,7 @@ builder.Services.AddScoped<IAccount, AccountRepo>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -187,25 +190,25 @@ app.UseStaticFiles(new StaticFileOptions
         ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=604800"); // Cache images 7 days
     }
 });
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path.Value;
+//app.Use(async (context, next) =>
+//{
+//    var path = context.Request.Path.Value;
 
-    if (path != null && path.Contains("google"))
-    {
-        Console.WriteLine($"\n=== {context.Request.Method} {path} ===");
-        Console.WriteLine($"Has state query: {context.Request.Query.ContainsKey("state")}");
-        Console.WriteLine($"Has code query: {context.Request.Query.ContainsKey("code")}");
-        Console.WriteLine("Cookies present:");
-        foreach (var cookie in context.Request.Cookies)
-        {
-            Console.WriteLine($"  - {cookie.Key}");
-        }
-        Console.WriteLine("===================\n");
-    }
+//    if (path != null && path.Contains("google"))
+//    {
+//        Console.WriteLine($"\n=== {context.Request.Method} {path} ===");
+//        Console.WriteLine($"Has state query: {context.Request.Query.ContainsKey("state")}");
+//        Console.WriteLine($"Has code query: {context.Request.Query.ContainsKey("code")}");
+//        Console.WriteLine("Cookies present:");
+//        foreach (var cookie in context.Request.Cookies)
+//        {
+//            Console.WriteLine($"  - {cookie.Key}");
+//        }
+//        Console.WriteLine("===================\n");
+//    }
 
-    await next();
-});
+//    await next();
+//});
 
 app.UseRateLimiter();
 app.UseAuthentication();
