@@ -37,14 +37,20 @@ namespace Safi.Repositories
 
         public async Task<List<DepartmentPatientStatsDto>> GetPatientsPerDepartmentAsync()
         {
-            return await _context.Departments
+            var departments = await _context.Departments
                 .IgnoreQueryFilters()
-                .Select(d => new DepartmentPatientStatsDto
-                {
-                    DepartmentName = d.Name,
-                    PatientCount = _context.Patients.IgnoreQueryFilters().Count(p => p.Departments != null && p.Departments.Any(dept => dept.Id == d.Id))
-                })
                 .ToListAsync();
+            
+            var patients = await _context.Patients
+                .IgnoreQueryFilters()
+                .Include(p => p.Departments)
+                .ToListAsync();
+
+            return departments.Select(d => new DepartmentPatientStatsDto
+            {
+                DepartmentName = d.Name,
+                PatientCount = patients.Count(p => p.Departments != null && p.Departments.Any(dept => dept.Id == d.Id))
+            }).ToList();
         }
 
         public async Task<PatientDistributionDto> GetPatientDistributionAsync()
@@ -61,17 +67,14 @@ namespace Safi.Repositories
 
         public async Task<List<DepartmentRoomStatsDto>> GetRoomStatsPerDepartmentAsync()
         {
-            // RoomType discriminators: "NormalRoom", "Icu", "Emergency"
-            // RoomStatus: "Available"
-
             var stats = await _context.Departments
+                .IgnoreQueryFilters()
                 .Select(d => new
                 {
                     d.Name,
-                    AllRooms = d.Rooms!.Count(), // Includes all types
-                    NormalRooms = d.Rooms!.Count(r => r.GetType().Name == "Room"),
-                    Icus = d.Icus!.Count(),
-                    Emergencies = d.Emergencies!.Count(),
+                    NormalRooms = d.Rooms!.Where(r => EF.Property<string>(r, "RoomType") == "NormalRoom").Count(),
+                    Icus = d.Rooms!.Where(r => EF.Property<string>(r, "RoomType") == "Icu").Count(),
+                    Emergencies = d.Rooms!.Where(r => EF.Property<string>(r, "RoomType") == "Emergency").Count(),
                     Available = d.Rooms!.Count(r => r.Status == "Available"),
                     Unavailable = d.Rooms!.Count(r => r.Status != "Available")
                 })

@@ -1,4 +1,4 @@
-﻿using Safi.Dto.AvailableTimeOFDoctor;
+using Safi.Dto.AvailableTimeOFDoctor;
 
 namespace Safi.Interfaces
 {

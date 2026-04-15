@@ -157,26 +157,35 @@ namespace Safi.Repositories
         }
         public async Task<bool> DeleteAvailableTime(int id)
         {
+            var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var Context = await _context.Database.BeginTransactionAsync();
-                var entity = await _context.TimeAvailableOfDoctors.FirstOrDefaultAsync(t => t.Id == id);
+                var entity = await _context.TimeAvailableOfDoctors
+                    .Include(t => t.Doctor)
+                    .FirstOrDefaultAsync(t => t.Id == id);
 
                 if (entity == null)
-                    return false;
-                var result = await _reservation.DeleteManyReservationsByAvailableTimeId(id);
-                if (result == false)
                 {
-                    Context.Rollback();
+                    await transaction.RollbackAsync();
                     return false;
                 }
+
+                var result = await _reservation.DeleteManyReservationsByAvailableTimeId(id);
+                if (!result)
+                {
+                    await transaction.RollbackAsync();
+                    return false;
+                }
+
                 _context.TimeAvailableOfDoctors.Remove(entity);
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();   // ← was missing: changes were never committed
                 return true;
             }
-            catch (Exception ex) { 
-             return false;
-            
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return false;
             }
         }
 

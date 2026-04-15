@@ -13,14 +13,5 @@
         public float ALB { get; set; }
         public float AG_Ratio { get; set; }
 
-
-
-
-
-
-
-
-
-
     }
 }

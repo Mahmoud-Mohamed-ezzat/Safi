@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Reservation;
 using Safi.Interfaces;
 using Safi.Mapper;
@@ -8,17 +8,20 @@ using Safi.Hubs;
 using System.ComponentModel.DataAnnotations;
 using Safi.Dto.Account;
 using Safi.Dto.Department;
+using Safi.Dto.EmailDto;
 namespace Safi.Repositories
 {
     public class ReservationRepo : IReservation
     {
         private readonly SafiContext _context;
-
         private readonly IHubContext<ReservationHub> _hubContext;
-        public ReservationRepo(SafiContext context, IHubContext<ReservationHub> hubContext)
+        private readonly IEmailService _emailService;
+
+        public ReservationRepo(SafiContext context, IHubContext<ReservationHub> hubContext, IEmailService emailService)
         {
             _context = context;
             _hubContext = hubContext;
+            _emailService = emailService;
         }
         public async Task<Reservation> CreateOneReservation(CreateReservationDto dto)
         {
@@ -82,29 +85,69 @@ namespace Safi.Repositories
         {
             try
             {
-                await _context.Database.BeginTransactionAsync();
                 var availableTime = await _context.TimeAvailableOfDoctors
-                       .FirstOrDefaultAsync(t => t.Id == availableTimeId);
+                    .Include(t => t.Doctor)
+                    .FirstOrDefaultAsync(t => t.Id == availableTimeId);
+
                 if (availableTime == null)
                     return false;
 
                 var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
 
+                // Block deletion of past available times
+                if (targetDate.Date < DateTime.Today)
+                    return false;
+
+                // Only delete future or present (today) reservations
                 var reservations = await _context.Reservations
-                    .Where(r => r.DoctorId == availableTime.DoctorId && r.Time.Date == targetDate)
+                    .Include(r => r.Patient)
+                    .Where(r => r.DoctorId == availableTime.DoctorId
+                             && r.Time.Date == targetDate.Date)
                     .ToListAsync();
 
                 if (reservations.Count == 0)
-                    return false;
+                    return true; // Nothing to delete — operation still succeeded
+
+                // Collect reserved patients to notify before deleting
+                var reservedReservations = reservations
+                    .Where(r => r.Status == "Reserved" && r.Patient != null && !string.IsNullOrEmpty(r.Patient.Email))
+                    .ToList();
 
                 _context.Reservations.RemoveRange(reservations);
                 await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+
+                // Send cancellation emails (fire-and-forget per patient — don't block the delete)
+                var doctorName = availableTime.Doctor?.Name ?? "your doctor";
+                var dateStr = availableTime.Day.ToString("dddd, MMMM dd, yyyy");
+                var timeStr = availableTime.StartTime.ToString("hh:mm tt");
+
+                var emailTasks = reservedReservations.Select(r =>
+                    _emailService.SendEmailAsync(new SendEmailDto
+                    {
+                        ToEmail = r.Patient!.Email!,
+                        Subject = "Reservation Cancelled – Safi Hospital",
+                        Body =
+                            $"Dear {r.Patient.Name ?? "Patient"},\n\n" +
+                            $"We regret to inform you that your reservation has been cancelled.\n\n" +
+                            $"Doctor : {doctorName}\n" +
+                            $"Date   : {dateStr}\n" +
+                            $"Time   : {r.Time:hh:mm tt}\n\n" +
+                            $"We apologise for any inconvenience caused. " +
+                            $"Please contact us or book a new appointment at your earliest convenience.\n\n" +
+                            $"Regards,\nSafi Hospital"
+                    })
+                );
+
+                // Await all emails but don't let a failed email affect the delete result
+                await Task.WhenAll(emailTasks.Select(async t =>
+                {
+                    try { await t; } catch { /* log if needed */ }
+                }));
+
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                await _context.Database.RollbackTransactionAsync();
                 return false;
             }
         }

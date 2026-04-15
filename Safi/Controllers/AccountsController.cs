@@ -57,7 +57,7 @@ namespace Safi.Controllers
             properties.SetParameter("prompt", "select_account");
             return Challenge(properties, "Google");
         }
-
+        [AllowAnonymous]
         [HttpGet("external-login/google/callback")]
         public async Task<IActionResult> GoogleCallback()
         {
@@ -103,7 +103,7 @@ namespace Safi.Controllers
             }
             catch { return null; }
         }
-
+        [AllowAnonymous]
         [HttpPost("ForgetPassword")]
         public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordDto model)
         {
@@ -121,7 +121,7 @@ namespace Safi.Controllers
             if (result.Succeeded) return Ok("Password reset successful");
             return BadRequest(result.Errors.Select(e => e.Description));
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost("SignUpSubAdmin")]
         public async Task<IActionResult> signupAsSubAdmin([FromForm] SignupFoRAdminOfWebDto model)
         {
@@ -154,7 +154,6 @@ namespace Safi.Controllers
             return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
 
-        [AllowAnonymous]
         [HttpPost("SignupAsADoctor")]
         public async Task<IActionResult> SignupAsADoctor([FromForm] SignupOfDoctorDto model)
         {
@@ -206,7 +205,7 @@ namespace Safi.Controllers
             _tokenServices.SetRefreshTokenInCookies(response.RefreshToken!, response.RefreshTokenExpiration);
             return Ok(response);
         }
-
+        [Authorize]
         [HttpGet("GetDoctors/{id}")]
         public async Task<IActionResult> GetDoctorById(string id)
         {
@@ -214,6 +213,7 @@ namespace Safi.Controllers
             if (result == null) return NotFound("Doctor not found");
             return Ok(result);
         }
+
 
         [HttpGet("GetStaff")]
         public async Task<IActionResult> GetStaff() => Ok(await _accountRepo.GetStaffAsync());
@@ -291,31 +291,33 @@ namespace Safi.Controllers
             if (await _accountRepo.ReturnFromDeleteAsync(userId)) return Ok("Account returned from delete successfully");
             return NotFound("User not found");
         }
-
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpPost("deactivate/{userId}")]
         public async Task<IActionResult> DeactivateAccount(string userId)
         {
             if (await _accountRepo.DeactivateAccountAsync(userId)) return Ok("Account deactivated successfully");
             return NotFound("User not found");
         }
-
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpPost("activate/{userId}")]
         public async Task<IActionResult> ActivateAccount(string userId)
         {
             if (await _accountRepo.ActivateAccountAsync(userId)) return Ok("Account activated successfully");
             return NotFound("User not found");
         }
-
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("deleted-doctors")]
         public async Task<IActionResult> GetDeletedDoctors() => Ok(await _accountRepo.GetDeletedDoctorsAsync());
 
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("deleted-patients")]
         public async Task<IActionResult> GetDeletedPatients() => Ok(await _accountRepo.GetDeletedPatientsAsync());
 
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("deactivated-users")]
         public async Task<IActionResult> GetDeactivatedUsers() => Ok(await _accountRepo.GetDeactivatedUsersAsync());
 
-        //[Authorize(Roles = "Patient")]
+        [Authorize(Roles = "Patient")]
         [HttpPut("UpdatePatientProfile")]
         public async Task<IActionResult> UpdatePatientProfile([FromForm] UPdatePatientProfileDto model)
         {
@@ -329,7 +331,7 @@ namespace Safi.Controllers
             return BadRequest(result.Errors.Select(e => e.Description));
         }
 
-        //[Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor")]
         [HttpPut("UpdateDoctorProfile")]
         public async Task<IActionResult> UpdateDoctorProfile([FromForm] UpdateDoctorProfileDto model)
         {
@@ -343,7 +345,7 @@ namespace Safi.Controllers
             return BadRequest(result.Errors.Select(e => e.Description));
         }
 
-        //[Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff")]
         [HttpPut("UpdateStaffProfile")]
         public async Task<IActionResult> UpdateStaffProfile([FromForm] UpdateStaffProfileDto model)
         {
@@ -357,7 +359,7 @@ namespace Safi.Controllers
             return BadRequest(result.Errors.Select(e => e.Description));
         }
 
-        //[Authorize(Roles = "Admin,SubAdmin")]
+        [Authorize(Roles = "Admin")]
         [HttpPut("UpdateAdminProfile")]
         public async Task<IActionResult> UpdateAdminProfile([FromForm] UpdateAdminProfileDto model)
         {
@@ -370,6 +372,7 @@ namespace Safi.Controllers
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));
         }
+        [Authorize(Roles = "Doctor,Admin,SubAdmin")]
         [HttpGet("GetUserHistory")]
         public async Task<IActionResult> GetUserHistory(string userId)
         {
@@ -377,7 +380,7 @@ namespace Safi.Controllers
             if (result == null) return NotFound("User not found");
             return Ok(result);
         }
-        
+        [Authorize(Roles = "Doctor")]
         [HttpPut("UpdatepressureAndSugarOfPatient")]
         public async Task<IActionResult> UpdatepressureAndSugarOfPatient([FromBody] UpdatePressureAndSugarOfPatientDto model)
         {
