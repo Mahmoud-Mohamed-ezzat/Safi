@@ -67,7 +67,30 @@ namespace Safi.Mapper
                 IsActive = patient.IsActive
             };
         }
-
+        public static GetPatientByIdOrNameDto ToGetPatientByIdOrNameDto(this Patient patient)
+        {
+            return new GetPatientByIdOrNameDto
+            {
+                Id = patient.Id,
+                CustomId = patient.Custome_Id,
+                Name = patient.Name ?? null,
+                Image = patient.Image ?? null,
+                Email = patient.Email ?? null,
+                Phone = patient.PhoneNumber ?? null,
+                DateOfBirth = patient.DateOfBirth,
+                Gender = patient.Gender,
+                HasSugar = patient.HasSugar,
+                History = patient.History ?? "",
+                HasPressure = patient.HasPressure,
+                Departments = patient.Departments?.Select(d => new DepartmentInfoDto
+                {
+                    Id = d.Id,
+                    Name = d.Name ?? ""
+                }).ToList(),
+                IsDeleted = patient.IsDeleted,
+                IsActive = patient.IsActive
+            };
+        }
         public static GetSubAdminsDto ToGetSubAdminsDto(this User user)
         {
             return new GetSubAdminsDto

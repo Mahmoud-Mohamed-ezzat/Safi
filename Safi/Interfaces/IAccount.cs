@@ -22,6 +22,7 @@ namespace Safi.Interfaces
         Task<GetStaffsDto?> GetStaffByIdAsync(string id);
         Task<List<GetPatientsDto>> GetPatientsAsync();
         Task<GetPatientsDto?> GetPatientByIdAsync(string id);
+        Task<GetPatientByIdOrNameDto?> GetPatientByIdOrNameAsync(int id,string name);
         Task<List<GetSubAdminsDto>> GetSubAdminsAsync();
         Task<GetSubAdminsDto?> GetSubAdminByIdAsync(string id);
 

@@ -159,7 +159,14 @@ namespace Safi.Repositories
                 .FirstOrDefaultAsync();
             return appointment?.ToAppointmentToRoomDto();
         }
-
+        public async Task<AppointmentToRoomDto?> GetActiveAppointmentByRoomIdAsync(int roomId,string doctorId)
+        {
+            var appointment = await GetQueryWithIncludes()
+                .Where(a => a.RoomId == roomId && a.EndTime == null && a.DoctorId == doctorId||a.CreatedBy==doctorId)
+                .OrderByDescending(a => a.StartTime)
+                .FirstOrDefaultAsync();
+            return appointment?.ToAppointmentToRoomDto();
+        }
         public async Task<List<AppointmentToRoomDto>> GetAllAsync()
         {
             var appointments = await GetQueryWithIncludes(true)

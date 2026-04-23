@@ -105,6 +105,72 @@ namespace Safi.Hubs
                 });
             }
         }
+       //Get reserved room of doctor to release it 
+        public async Task GetReservedRoomsByDepartment(int departmentId, string roomType,string Doctorid)
+        {
+            try
+            {
+                List<AvailableRoomInfoDto> ReservedRooms = new List<AvailableRoomInfoDto>();
+
+                if (roomType == "Room")
+                {
+                    var rooms = await _context.Rooms
+                        .Include(r => r.Department)
+                        .Include(r => r.AssignRoomToDoctors!)
+                            .ThenInclude(a => a.Doctor)
+                        .Where(r => r.GetType() == typeof(Room) &&
+                                    r.DepartmentId == departmentId &&
+                                    r.Status == RoomStatus.Busy&&
+                                    r.AssignRoomToDoctors.Any(a => a.DoctorId == Doctorid))
+                        .AsNoTracking()
+                        .ToListAsync();
+
+                    ReservedRooms = rooms.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                }
+                else if (roomType == "ICU")
+                {
+                    var icus = await _context.Icus
+                        .Include(r => r.Department)
+                        .Include(r => r.AssignRoomToDoctors!)
+                            .ThenInclude(a => a.Doctor)
+                        .Where(r => r.DepartmentId == departmentId && r.Status == RoomStatus.Busy &&
+                                    r.AssignRoomToDoctors.Any(a => a.DoctorId == Doctorid))
+                        .AsNoTracking()
+                        .ToListAsync();
+
+                    ReservedRooms = icus.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                }
+                else if (roomType == "Emergency")
+                {
+                    var emergencies = await _context.Emergencies
+                        .Include(r => r.Department)
+                        .Include(r => r.AssignRoomToDoctors!)
+                            .ThenInclude(a => a.Doctor)
+                        .Where(r => r.DepartmentId == departmentId && r.Status == RoomStatus.Busy &&
+                                    r.AssignRoomToDoctors.Any(a => a.DoctorId == Doctorid))
+                        .AsNoTracking()
+                        .ToListAsync();
+
+                    ReservedRooms = emergencies.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                }
+
+                await Clients.Caller.SendAsync("ReceiveReservedRooms", new
+                {
+                    Success = true,
+                    DepartmentId = departmentId,
+                    RoomType = roomType,
+                    Rooms = ReservedRooms
+                });
+            }
+            catch (Exception ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveReservedRooms", new
+                {
+                    Success = false,
+                    Message = $"Error retrieving available rooms: {ex.Message}"
+                });
+            }
+        }
         // Block a room slot (change status to Busy) and return assigned doctors
         public async Task BlockRoomSlot(int roomId, string roomType)
         {
@@ -330,47 +396,18 @@ namespace Safi.Hubs
         }
 
         // Release a room (change status back to Available, close active appointment if exists)
-        public async Task ReleaseRoom(int roomId, string roomType, CreateReportWhenPatientGetOutRoomDto dto)
+        public async Task ReleaseRoom(string DoctorId,int roomId, string roomType, CreateReportWhenPatientGetOutRoomDto dto)
         {
             var db = await _context.Database.BeginTransactionAsync();
             try
             {
-                Room? room = null;
-                if (roomType == "Room")
-                {
-                    room = await _context.Rooms
-                        .Include(r => r.Department)
-                        .Where(r => r.GetType() == typeof(Room))
-                        .FirstOrDefaultAsync(r => r.Id == roomId);
-                }
-                else if (roomType == "ICU")
-                {
-                    room = await _context.Icus
-                        .Include(r => r.Department)
-                        .FirstOrDefaultAsync(r => r.Id == roomId);
-                }
-                else if (roomType == "Emergency")
-                {
-                    room = await _context.Emergencies
-                        .Include(r => r.Department)
-                        .FirstOrDefaultAsync(r => r.Id == roomId);
-                }
 
-                if (room == null)
-                {
-                    await Clients.Caller.SendAsync("ReleaseRoomResult", new
-                    {
-                        Success = false,
-                        Message = "Room not found"
-                    });
-                    return;
-                }
                 // Check for active appointment and close it
-                var activeAppointment = await _appointmentRepo.GetActiveAppointmentByRoomIdAsync(roomId);
+                var activeAppointment = await _appointmentRepo.GetActiveAppointmentByRoomIdAsync(roomId,DoctorId);
 
                 if (activeAppointment != null)
                 {
-                    if (dto.CreatedBy != activeAppointment.DoctorId)
+                    if (dto.CreatedBy != activeAppointment.DoctorId || dto.CreatedBy != activeAppointment.DoctorId)
                     {
                         await Clients.Caller.SendAsync("ReleaseRoomResult", new
                         {
@@ -385,7 +422,8 @@ namespace Safi.Hubs
                 }
 
                 // Change status to Available
-                room.Status = RoomStatus.Available;
+                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == roomId);
+                room!.Status = RoomStatus.Available;
                 await _context.SaveChangesAsync();
                 db.Commit();
                 var groupName = $"{roomType}s_{room.DepartmentId}";

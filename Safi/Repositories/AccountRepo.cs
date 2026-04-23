@@ -245,6 +245,20 @@ namespace Safi.Repositories
             return patient?.ToGetPatientsDto();
         }
 
+        public async Task<GetPatientByIdOrNameDto?> GetPatientByIdOrNameAsync(int id, string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return (await _context.Patients.AsNoTracking()
+                .Include(d => d.Departments)
+                .FirstOrDefaultAsync(d => d.Custome_Id == id))?
+                .ToGetPatientByIdOrNameDto();
+            }
+            return (await _context.Patients.AsNoTracking()
+                .Include(d => d.Departments)
+                .FirstOrDefaultAsync(d => d.Custome_Id == id || d.Name.ToLower().Contains(name.ToLower())))?
+                .ToGetPatientByIdOrNameDto();
+        }
         public async Task<List<GetSubAdminsDto>> GetSubAdminsAsync()
         {
             var subAdmins = await _userManager.GetUsersInRoleAsync("SubAdmin");

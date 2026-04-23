@@ -17,6 +17,7 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Safi.Services.AIService;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,26 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
+    });
+});
+builder.Services.AddSwaggerGen(option =>
+{
+    option.SwaggerDoc("v1", new OpenApiInfo { Title = "Demo API", Version = "v1" });
+    option.IgnoreObsoleteActions();
+    option.IgnoreObsoleteProperties();
+    option.CustomSchemaIds(type => type.FullName);
+    option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+    option.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
     });
 });
 // Add services to the container.
@@ -149,7 +170,9 @@ TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<HeartDiseasModel>();
 builder.Services.AddTransient<LiverModel>();
+builder.Services.AddScoped<MedicineModelService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IDepartment, DepartmentRepo>();
 builder.Services.AddScoped<IReservation, ReservationRepo>();
@@ -165,10 +188,8 @@ builder.Services.AddScoped<IStatisticsRepo, StatisticsRepo>();
 builder.Services.AddScoped<IEmailService, EmailRepository>();
 builder.Services.AddScoped<IDoctor, DoctorRepo>();
 builder.Services.AddScoped<IAccount, AccountRepo>();
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 // Configure the HTTP request pipeline.

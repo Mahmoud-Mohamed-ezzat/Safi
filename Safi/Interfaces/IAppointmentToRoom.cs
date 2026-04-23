@@ -25,6 +25,7 @@ namespace Safi.Interfaces
         Task<bool> DeleteAsync(int id);
         Task<AppointmentToRoomDto?> UpdateEndTimeAsync(CreateReportWhenPatientGetOutRoomDto dto);
         Task<AppointmentToRoomDto?> GetActiveAppointmentByRoomIdAsync(int roomId);
+        Task<AppointmentToRoomDto?> GetActiveAppointmentByRoomIdAsync(int roomId,string doctorId);
         Task<List<AppointmentToRoomDto>> GetAllAsync();
 
     }

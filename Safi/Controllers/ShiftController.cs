@@ -3,6 +3,7 @@ using Safi.Dto.ShiftDto;
 using Safi.Dto.Account;
 using Safi.Dto.AssignRoomToDoctorDto;
 using Safi.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Safi.Controllers
 {
@@ -18,13 +19,14 @@ namespace Safi.Controllers
         }
 
         // CRUD
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var shifts = await _shiftRepo.GetAllAsync();
             return Ok(shifts);
         }
-
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -33,6 +35,7 @@ namespace Safi.Controllers
             return Ok(shift);
         }
 
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateShiftDto dto)
         {
@@ -42,6 +45,7 @@ namespace Safi.Controllers
             return CreatedAtAction(nameof(GetById), new { id = shift.Id }, shift);
         }
 
+        [Authorize(Roles ="Admin,subadmin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateShiftDto dto)
         {
@@ -51,6 +55,7 @@ namespace Safi.Controllers
             return Ok(shift);
         }
 
+        [Authorize(Roles ="Admin,subadmin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -59,6 +64,7 @@ namespace Safi.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles ="Admin,subadmin")]
         // Specific Retrieval
         [HttpGet("{shiftId}/doctors")]
         public async Task<IActionResult> GetDoctorsByShift(int shiftId)
@@ -67,7 +73,7 @@ namespace Safi.Controllers
             if (doctors == null) return BadRequest("Doctors not found in this shift");
             return Ok(doctors);
         }
-
+        [Authorize(Roles ="Admin,subadmin")]
         [HttpGet("{shiftId}/doctors/{doctorId}")]
         public async Task<IActionResult> GetDoctorByShift(int shiftId, string doctorId)
         {
@@ -76,6 +82,7 @@ namespace Safi.Controllers
             return Ok(doctor);
         }
 
+        [Authorize(Roles ="Admin,subadmin")]
         [HttpGet("{shiftId}/assignments")]
         public async Task<IActionResult> GetAssignmentsByShift(int shiftId)
         {
@@ -84,6 +91,7 @@ namespace Safi.Controllers
             return Ok(assignments);
         }
 
+        [Authorize(Roles ="Admin,subadmin")]
         [HttpGet("{shiftId}/assignments/room/{roomId}")]
         public async Task<IActionResult> GetAssignmentByShiftAndRoom(int shiftId, int roomId)
         {
