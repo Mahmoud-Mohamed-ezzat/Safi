@@ -121,48 +121,48 @@ builder.Services.AddAuthentication(options =>
     options.CorrelationCookie.SameSite = SameSiteMode.Lax;
     options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
 });
-builder.Services.AddRateLimiter(options =>
-{
-    // Global Limiter (Limit requests by IP)
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-    {
-        var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+//builder.Services.AddRateLimiter(options =>
+//{
+//    // Global Limiter (Limit requests by IP)
+//    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+//    {
+//        var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
 
-        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 5,                         // Allow 5 requests
-            Window = TimeSpan.FromSeconds(10),       // Every 10 seconds
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 0
-        });
-    });
+//        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+//        {
+//            PermitLimit = 5,                         // Allow 5 requests
+//            Window = TimeSpan.FromSeconds(10),       // Every 10 seconds
+//            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+//            QueueLimit = 0
+//        });
+//    });
 
-    // Login Policy (Limit by IP)
-    options.AddPolicy("LoginLimit", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 3,                    // Allow 3 attempts
-                Window = TimeSpan.FromMinutes(3),   // Every 3 minutes
-                QueueLimit = 0,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
-            }));
+//    // Login Policy (Limit by IP)
+//    options.AddPolicy("LoginLimit", httpContext =>
+//        RateLimitPartition.GetFixedWindowLimiter(
+//            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+//            factory: _ => new FixedWindowRateLimiterOptions
+//            {
+//                PermitLimit = 3,                    // Allow 3 attempts
+//                Window = TimeSpan.FromMinutes(3),   // Every 3 minutes
+//                QueueLimit = 0,
+//                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+//            }));
 
-    // Register Policy (Limit by IP)
-    options.AddPolicy("RegisterLimit", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 3,                    // Allow 3 attempts
-                Window = TimeSpan.FromMinutes(1),   // Every 1 minute
-                QueueLimit = 0,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
-            }));
+//    // Register Policy (Limit by IP)
+//    options.AddPolicy("RegisterLimit", httpContext =>
+//        RateLimitPartition.GetFixedWindowLimiter(
+//            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+//            factory: _ => new FixedWindowRateLimiterOptions
+//            {
+//                PermitLimit = 3,                    // Allow 3 attempts
+//                Window = TimeSpan.FromMinutes(1),   // Every 1 minute
+//                QueueLimit = 0,
+//                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+//            }));
 
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-});
+//    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+//});
 builder.Services.AddSignalR();
 
 // Allow DateOnly to accept "MM/dd/yyyy" format from form data
@@ -175,19 +175,22 @@ builder.Services.AddTransient<LiverModel>();
 builder.Services.AddScoped<MedicineModelService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IDepartment, DepartmentRepo>();
+builder.Services.AddScoped<IPrices,PriceRepo>();
 builder.Services.AddScoped<IReservation, ReservationRepo>();
 builder.Services.AddScoped<IAvailableTimeOfDoctor, AvailableTimeOfDoctorRepo>();
 builder.Services.AddScoped<IReportDoctorToPatient, ReportDoctorToPatientRepo>();
 builder.Services.AddScoped<IRoom, RoomRepo>();
 builder.Services.AddScoped<IICU, ICURepo>();
 builder.Services.AddScoped<IEmergency, EmergencyRepo>();
-builder.Services.AddScoped<IAssignRoomToDoctor, AssignRoomToDoctorRepo>();
+builder.Services.AddScoped<IAssignWorks, AssignWorksRepo>();
 builder.Services.AddScoped<IAppointmentToRoom, AppointmentToRoomRepo>();
 builder.Services.AddScoped<IShift, ShiftRepo>();
 builder.Services.AddScoped<IStatisticsRepo, StatisticsRepo>();
 builder.Services.AddScoped<IEmailService, EmailRepository>();
 builder.Services.AddScoped<IDoctor, DoctorRepo>();
+builder.Services.AddScoped<IAnalysis, AnalysisRepo>();
 builder.Services.AddScoped<IAccount, AccountRepo>();
+builder.Services.AddScoped<IAttendance, AttendanceRepo>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
@@ -231,7 +234,7 @@ app.UseStaticFiles(new StaticFileOptions
 //    await next();
 //});
 
-app.UseRateLimiter();
+//app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

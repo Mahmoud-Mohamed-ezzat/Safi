@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -164,6 +164,17 @@ namespace Safi.Controllers
             return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
 
+        //[Authorize(Roles = "Admin,subadmin")]
+        [HttpPost("SignupAsNurse")]
+        public async Task<IActionResult> SignupAsNurse([FromForm] SignupOfNurseDto model)
+        {
+            if (!ModelState.IsValid) return BadRequest();
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.SignupAsNurseAsync(model, imagePath);
+            if (result.Succeeded) return Ok("Registered successful");
+            return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
+        }
+
         [Authorize(Roles = "Admin,subadmin")]
         [HttpPost("SignupAsSatff")]
         public async Task<IActionResult> SignupAsStaff([FromForm] SignupOfStaffDto model)
@@ -227,7 +238,20 @@ namespace Safi.Controllers
             if (result == null) return NotFound("Staff not found");
             return Ok(result);
         }
-        [Authorize(Roles = "Admin,subadmin")]
+
+        //[Authorize(Roles = "Admin,subadmin")]
+        [HttpGet("GetNurses")]
+        public async Task<IActionResult> GetNurses() => Ok(await _accountRepo.GetNursesAsync());
+
+        //[Authorize(Roles = "Admin,subadmin")]
+        [HttpGet("GetNurses/{id}")]
+        public async Task<IActionResult> GetNurseById(string id)
+        {
+            var result = await _accountRepo.GetNurseByIdAsync(id);
+            if (result == null) return NotFound("Nurse not found");
+            return Ok(result);
+        }
+        //[Authorize(Roles = "Admin,subadmin")]
         [HttpGet("GetPatients")]
         public async Task<IActionResult> GetPatients() => Ok(await _accountRepo.GetPatientsAsync());
 
@@ -294,6 +318,14 @@ namespace Safi.Controllers
             return NotFound("Staff not found");
         }
 
+        //[Authorize(Roles = "Admin,subadmin")]
+        [HttpDelete("nurse/{userId}")]
+        public async Task<IActionResult> DeleteNurse(string userId)
+        {
+            if (await _accountRepo.DeleteNurseAsync(userId)) return Ok("Nurse soft-deleted successfully");
+            return NotFound("Nurse not found");
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpDelete("subadmin/{userId}")]
         public async Task<IActionResult> DeleteSubAdmin(string userId)
@@ -326,6 +358,10 @@ namespace Safi.Controllers
         [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("deleted-doctors")]
         public async Task<IActionResult> GetDeletedDoctors() => Ok(await _accountRepo.GetDeletedDoctorsAsync());
+
+        //[Authorize(Roles = "Admin,SubAdmin")]
+        [HttpGet("deleted-nurses")]
+        public async Task<IActionResult> GetDeletedNurses() => Ok(await _accountRepo.GetDeletedNursesAsync());
 
         [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("deleted-patients")]
@@ -372,6 +408,20 @@ namespace Safi.Controllers
 
             string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
             var result = await _accountRepo.UpdateStaffProfileAsync(model, imagePath);
+
+            if (result.Succeeded) return Ok("Profile updated successfully");
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        //[Authorize(Roles = "Nurse")]
+        [HttpPut("UpdateNurseProfile")]
+        public async Task<IActionResult> UpdateNurseProfile([FromForm] UpdateNurseProfileDto model)
+        {
+            var userId = await _accountRepo.GetNurseByIdAsync(model.Id);
+            if (userId == null) return Unauthorized();
+
+            string? imagePath = model.Image != null ? await _imageService.SaveImageAsync(model.Image) : null;
+            var result = await _accountRepo.UpdateNurseProfileAsync(model, imagePath);
 
             if (result.Succeeded) return Ok("Profile updated successfully");
             return BadRequest(result.Errors.Select(e => e.Description));

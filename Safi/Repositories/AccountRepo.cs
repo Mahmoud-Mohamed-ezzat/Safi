@@ -144,6 +144,33 @@ namespace Safi.Repositories
             return result;
         }
 
+        public async Task<IdentityResult> SignupAsNurseAsync(SignupOfNurseDto model, string? imagePath)
+        {
+            var user = new Nurse
+            {
+                Name = model.username,
+                UserName = model.email,
+                Gender = model.Gender,
+                Email = model.email,
+                PhoneNumber = model.Phone,
+                Image = imagePath,
+                University = model.University,
+                DepartmentId = model.DepartmentId,
+                DateOfBirth = model.DateOfBirth
+            };
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "Nurse");
+                await _emailService.SendEmailAsync(new Dto.EmailDto.SendEmailDto
+                {
+                    ToEmail = model.email,
+                    Subject = "Nurse Account Created",
+                    Body = $"Dear {model.username},\n\nYour Nurse account has been created.\nEmail: {model.email}\nPassword: {model.Password}\n\nPlease log in and change your password as soon as possible for security reasons."
+                });
+            }
+            return result;
+        }
         public async Task<IdentityResult> SignupAsStaffAsync(SignupOfStaffDto model, string? imagePath)
         {
             var user = new Staff
@@ -231,6 +258,20 @@ namespace Safi.Repositories
             return staff?.ToGetStaffsDto();
         }
 
+        public async Task<List<GetNursesDto>> GetNursesAsync()
+        {
+            var nurses = await _context.Nurses.AsNoTracking()
+                .Include(d => d.Department).ToListAsync();
+            return nurses.Select(p => p.ToGetNursesDto()).ToList();
+        }
+
+        public async Task<GetNursesDto?> GetNurseByIdAsync(string id)
+        {
+            var nurse = await _context.Nurses.AsNoTracking()
+                .Include(d => d.Department).FirstOrDefaultAsync(d => d.Id == id);
+            return nurse?.ToGetNursesDto();
+        }
+
         public async Task<List<GetPatientsDto>> GetPatientsAsync()
         {
             var patients = await _context.Patients.AsNoTracking()
@@ -290,7 +331,7 @@ namespace Safi.Repositories
                 _context.Reservations.RemoveRange(futureReservations);
 
                 // 2. Close active room assignments
-                var activeAssignments = _context.AssignRoomToDoctors.Where(a => a.DoctorId == userId && (a.EndDate == null || a.EndDate > DateOnly.FromDateTime(DateTime.Now)));
+                var activeAssignments = _context.AssignWorks.Where(a => a.userId == userId && (a.EndDate == null || a.EndDate > DateOnly.FromDateTime(DateTime.Now)));
                 foreach (var assignment in activeAssignments)
                 {
                     assignment.EndDate = DateOnly.FromDateTime(DateTime.Now);
@@ -304,9 +345,9 @@ namespace Safi.Repositories
                 foreach (var appointment in activeAppointments)
                 {
                     // Try priority 1: Another doctor in the same room right now
-                    var anotherDoctorInRoom = await _context.AssignRoomToDoctors
-                        .Where(a => a.RoomId == appointment.RoomId && a.DoctorId != userId && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
-                        .Select(a => a.DoctorId)
+                    var anotherDoctorInRoom = await _context.AssignWorks
+                        .Where(a => a.RoomId == appointment.RoomId && a.userId != userId && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
+                        .Select(a => a.userId)
                         .FirstOrDefaultAsync();
 
                     if (anotherDoctorInRoom != null)
@@ -316,20 +357,20 @@ namespace Safi.Repositories
                     else
                     {
                         // Try priority 2: Doctor in same shift and department
-                        var currentShift = await _context.AssignRoomToDoctors
-                            .Where(a => a.DoctorId == userId && a.RoomId == appointment.RoomId)
+                        var currentShift = await _context.AssignWorks
+                            .Where(a => a.userId == userId && a.RoomId == appointment.RoomId)
                             .Select(a => a.ShiftId)
                             .FirstOrDefaultAsync();
 
-                        var fallbackDoctor = await _context.AssignRoomToDoctors
-                            .Include(a => a.Doctor)
+                        var fallbackDoctor = await _context.AssignWorks
+                            .Include(a => a.user)
                             .Where(a => a.ShiftId == currentShift
-                                        && a.DoctorId != userId
-                                        && a.Doctor != null
+                                        && a.userId != userId
+                                        && a.user != null
                                         && doctor.DepartmentId != null
-                                        && a.Doctor.DepartmentId == doctor.DepartmentId
+                                        && ((Doctor)a.user).DepartmentId == doctor.DepartmentId
                                         && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
-                            .Select(a => a.DoctorId)
+                            .Select(a => a.userId)
                             .FirstOrDefaultAsync();
 
                         if (fallbackDoctor != null)
@@ -368,6 +409,22 @@ namespace Safi.Repositories
             var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == userId);
             if (staff == null) return false;
             staff.IsDeleted = true;
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> DeleteNurseAsync(string userId)
+        {
+            var nurse = await _context.Nurses.FirstOrDefaultAsync(n => n.Id == userId);
+            if (nurse == null) return false;
+            nurse.IsDeleted = true;
+
+            // Close active room assignments
+            var activeAssignments = _context.AssignWorks.Where(a => a.userId == userId && (a.EndDate == null || a.EndDate > DateOnly.FromDateTime(DateTime.Now)));
+            foreach (var assignment in activeAssignments)
+            {
+                assignment.EndDate = DateOnly.FromDateTime(DateTime.Now);
+            }
+
             return await _context.SaveChangesAsync() > 0;
         }
 
@@ -422,6 +479,15 @@ namespace Safi.Repositories
             .Where(d => d.IsDeleted)
             .ToListAsync();
             return doctors.Select(d => d.ToGetDoctorsDto()).ToList();
+        }
+
+        public async Task<List<GetNursesDto>> GetDeletedNursesAsync()
+        {
+            var nurses = await _context.Nurses
+            .IgnoreQueryFilters()
+            .Where(n => n.IsDeleted)
+            .ToListAsync();
+            return nurses.Select(n => n.ToGetNursesDto()).ToList();
         }
 
         public async Task<List<GetPatientsDto>> GetDeletedPatientsAsync()
@@ -528,6 +594,28 @@ namespace Safi.Repositories
         {
             var user = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == model.Id);
             if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Staff not found" });
+
+            if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
+            if (!string.IsNullOrEmpty(model.Phone)) user.PhoneNumber = model.Phone;
+            if (!string.IsNullOrEmpty(model.University)) user.University = model.University;
+            if (model.DepartmentId.HasValue) user.DepartmentId = model.DepartmentId.Value;
+            if (model.DateOfBirth.HasValue) user.DateOfBirth = model.DateOfBirth.Value;
+            if (imagePath != null) user.Image = imagePath;
+
+            if (!string.IsNullOrEmpty(model.Email) && model.Email != user.Email)
+            {
+                var emailResult = await _userManager.SetEmailAsync(user, model.Email);
+                if (!emailResult.Succeeded) return emailResult;
+                await _userManager.SetUserNameAsync(user, model.Email);
+            }
+
+            return await _userManager.UpdateAsync(user);
+        }
+
+        public async Task<IdentityResult> UpdateNurseProfileAsync(UpdateNurseProfileDto model, string? imagePath)
+        {
+            var user = await _context.Nurses.FirstOrDefaultAsync(n => n.Id == model.Id);
+            if (user == null) return IdentityResult.Failed(new IdentityError { Description = "Nurse not found" });
 
             if (!string.IsNullOrEmpty(model.Name)) user.Name = model.Name;
             if (!string.IsNullOrEmpty(model.Phone)) user.PhoneNumber = model.Phone;

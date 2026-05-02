@@ -38,7 +38,7 @@ namespace Safi.Mapper
                 DepartmentId = doctor.DepartmentId,
                 DepartmentName = doctor.Department.Name,
                 room_id = room_id,
-                room_number = doctor.AssignRoomToDoctors?.FirstOrDefault(a => a.RoomId == room_id)?.Room?.Number??-1, // i set -1 to test it 
+                room_number = doctor.AssignWorks?.FirstOrDefault(a => a.RoomId == room_id)?.Room?.Number??-1, // i set -1 to test it 
             };
         }
     }

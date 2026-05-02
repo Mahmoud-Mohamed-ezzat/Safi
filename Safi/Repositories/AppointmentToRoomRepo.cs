@@ -294,7 +294,7 @@ namespace Safi.Repositories
                 .Include(a => a.CreatedByUser)
                 .Include(a => a.Patient)
                 .Include(a => a.Room)
-                  .ThenInclude(r => r.AssignRoomToDoctors)
+                  .ThenInclude(r => r.AssignWorks)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == AppointmentId);
 
@@ -304,16 +304,16 @@ namespace Safi.Repositories
                 return new List<GetDoctorsDto>();
             }
 
-            var assigns = await _context.AssignRoomToDoctors.AsNoTracking()
-            .Include(ad => ad.Doctor)
-               .ThenInclude(d => d.Department)
+            var assigns = await _context.AssignWorks.AsNoTracking()
+            .Include(ad => ad.user)
+               .ThenInclude(d => (d as Doctor).Department)
             .Include(a => a.Room)
             .Where(ad => ad.RoomId == appointment.RoomId.Value &&
             ad.StartDate <= GetEndDateOrNow(appointment.EndTime) &&
             appointment.StartTime.HasValue &&
             ad.EndDate >= DateOnly.FromDateTime(appointment.StartTime.Value))
             .ToListAsync();
-            var doctors = assigns.Select(ad => ad.Doctor).Where(d => d != null).ToList();
+            var doctors = assigns.Select(ad => ad.user).Where(d => d is Doctor).Cast<Doctor>().ToList();
             return doctors.Select(d => d.ToGetDoctorsDto()).ToList();
         }
 
@@ -327,8 +327,8 @@ namespace Safi.Repositories
                 .Include(a => a.Room)
                     .ThenInclude(r => r!.Department)
                 .Where(a => a.DoctorId == DoctorId ||
-                            _context.AssignRoomToDoctors.IgnoreQueryFilters().Any(ad =>
-                                ad.DoctorId == DoctorId &&
+                            _context.AssignWorks.IgnoreQueryFilters().Any(ad =>
+                                ad.userId == DoctorId &&
                                 ad.RoomId == a.RoomId &&
                                 a.StartTime.HasValue &&
                                 ad.EndDate >= DateOnly.FromDateTime(a.StartTime.Value) &&

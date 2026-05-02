@@ -14,9 +14,11 @@ namespace Safi.Models
         public string DoctorId { get; set; }
         [ForeignKey("DoctorId")]
         public virtual Doctor Doctor { get; set; } = null!;
+        public int? BillId { get; set; }
+        [ForeignKey("BillId")]
+        public virtual Bill? Bill { get; set; } = null;
         public DateTime Time { get; set; }
         public string? Status { get; set; }  // "reserved", "completed", "un-reserved"
-
         [Timestamp]
         public byte[] RowVersion { get; set; } = null!;
     }

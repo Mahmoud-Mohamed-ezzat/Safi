@@ -1,13 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Safi.Dto.AssignRoomToDoctorDto
+namespace Safi.Dto.AssignWorksDto
 {
-    public class CreateAssignRoomToDoctorDto
+    public class CreateAssignWorksDto
     {
         [Required]
         public int RoomId { get; set; }
         [Required]
-        public string DoctorId { get; set; } = string.Empty;
+        public string DoctorId { get; set; } // Renamed in model to userId, but keeping DTO property name for now
         [Required]
         public int ShiftId { get; set; }
         public DateOnly? StartDate { get; set; }

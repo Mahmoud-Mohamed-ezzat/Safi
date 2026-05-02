@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Safi.Dto.ShiftDto;
 using Safi.Dto.Account;
-using Safi.Dto.AssignRoomToDoctorDto;
+using Safi.Dto.AssignWorksDto;
 using Safi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 
@@ -35,7 +35,7 @@ namespace Safi.Controllers
             return Ok(shift);
         }
 
-        [Authorize(Roles = "Admin,subadmin")]
+        //[Authorize(Roles = "Admin,subadmin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateShiftDto dto)
         {

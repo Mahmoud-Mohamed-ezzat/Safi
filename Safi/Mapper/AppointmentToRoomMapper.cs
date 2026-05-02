@@ -40,7 +40,7 @@ namespace Safi.Mapper
             };
         }
 
-        public static AvailableRoomInfoDto ToAvailableRoomInfoDto(this Room room, List<AssignRoomToDoctor> assignments)
+        public static AvailableRoomInfoDto ToAvailableRoomInfoDto(this Room room, List<AssignWorks> assignments)
         {
             return new AvailableRoomInfoDto
             {
@@ -51,14 +51,15 @@ namespace Safi.Mapper
                 DepartmentName = room.Department?.Name ?? string.Empty,
                 RoomType = room.GetType().Name,
                 AssignedDoctors = assignments
-                    .Where(a => a.Doctor != null)
-                    .Select(a => new AssignedDoctorDto
+                    .Where(a => a.user is Doctor)
+                    .Select(a => (Doctor)a.user!)
+                    .Select(d => new AssignedDoctorDto
                     {
-                        DoctorId = a.DoctorId ?? string.Empty,
-                        DoctorName = a.Doctor!.UserName ?? string.Empty,
-                        Degree = a.Doctor.Degree,
-                        University = a.Doctor.University,
-                        Rank = a.Doctor.Rank,
+                        DoctorId = d.Id,
+                        DoctorName = d.UserName ?? string.Empty,
+                        Degree = d.Degree,
+                        University = d.University,
+                        Rank = d.Rank,
 
                     }).ToList()
             };

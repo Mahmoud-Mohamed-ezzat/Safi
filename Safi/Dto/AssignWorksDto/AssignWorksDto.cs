@@ -1,11 +1,11 @@
-namespace Safi.Dto.AssignRoomToDoctorDto
+namespace Safi.Dto.AssignWorksDto
 {
-    public class AssignRoomToDoctorDto
+    public class AssignWorksDto
     {
         public int Id { get; set; }
         public int? RoomId { get; set; }
         public int? RoomNumber { get; set; }
-        public string? DoctorId { get; set; }
+        public string? DoctorId { get; set; } // Renamed to DoctorId in DTO to keep API compatibility if needed, or I can rename to userId
         public string? DoctorName { get; set; }
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }

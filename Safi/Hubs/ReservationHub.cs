@@ -9,11 +9,13 @@ public class ReservationHub : Hub
 {
     private readonly SafiContext _context;
     private readonly IEmailService _emailService;
+    private readonly IBill _bill;
 
-    public ReservationHub(SafiContext context, IEmailService emailService)
+    public ReservationHub(SafiContext context, IBill bill, IEmailService emailService)
     {
         _context = context;
         _emailService = emailService;
+        _bill = bill;
     }
 
     public async Task TestMe(string someRandomText)
@@ -96,6 +98,7 @@ public class ReservationHub : Hub
 
         try
         {
+            //var Price=await _Prices.GetPriceAsync(string Pricename);
             // Use patientId parameter (not reservation.PatientId which may be null/old value)
             var user = await _context.Patients
                 .Include(p => p.Departments)
@@ -120,6 +123,25 @@ public class ReservationHub : Hub
             reservation.PatientId = patientId;
             reservation.Status = "Reserved";
 
+            ////Create bill here or add it to specific bill
+            //var activeBillId = await _bill.CheckThisBillActive(patientId);
+            //if (activeBillId == null)
+            //{
+            //    await _bill.CreateBill(new Safi.Dto.Bill.createbillDto
+            //    {                 
+            //          Status="open",
+            //          TotalAmount=,
+            //          PatientId= reservation.PatientId,
+            //     });
+            //}
+            //else
+            //{
+            //    await _bill.AddItemToBillAsync(activeBillId.Value, new Safi.Dto.Bill.CreateBillItemDto
+            //    {
+            //        Description = $"Consultation with Dr. {doctor.Name} on {reservation.Time:f}",
+            //        Amount = doctor.ConsultationFee
+            //    });
+            //}
             // Check if department already exists in patient's departments by Id
             var departmentExists = (user.Departments ?? Enumerable.Empty<Department>()).Any(d => d.Id == doctor.Department.Id);
             if (!departmentExists)

@@ -1,6 +1,7 @@
 using Safi.Dto.Account;
 using Safi.Dto.ShiftDto;
-using Safi.Dto.AssignRoomToDoctorDto;
+using Safi.Dto.AssignWorksDto;
+
 namespace Safi.Interfaces
 {
     public interface IShift
@@ -19,9 +20,9 @@ namespace Safi.Interfaces
         Task<GetDoctorsDto?> GetDoctorByShiftIdAsync(int shiftId, string doctorId);
         Task<GetDoctorsDto?> GetDoctorAtDateByShiftIdAsync(int shiftId, DateOnly date, string doctorId);
         Task<GetDoctorsDto?> GetDoctorAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId, string doctorId);
-        Task<List<AssignRoomToDoctorDto>> GetAssignmentsByShiftIdAsync(int shiftId);
-        Task<List<AssignRoomToDoctorDto>> GetAssignmentsAtDateByShiftIdAsync(int shiftId, DateOnly date);
-        Task<List<AssignRoomToDoctorDto>> GetAssignmentsAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId);
-        Task<AssignRoomToDoctorDto?> GetAssignmentByShiftIdAndRoomIdAsync(int shiftId, int roomId);
+        Task<List<AssignWorksDto>> GetAssignmentsByShiftIdAsync(int shiftId);
+        Task<List<AssignWorksDto>> GetAssignmentsAtDateByShiftIdAsync(int shiftId, DateOnly date);
+        Task<List<AssignWorksDto>> GetAssignmentsAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId);
+        Task<AssignWorksDto?> GetAssignmentByShiftIdAndRoomIdAsync(int shiftId, int roomId);
     }
 }

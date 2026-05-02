@@ -13,10 +13,10 @@ namespace Safi.Hubs
     {
         private readonly SafiContext _context;
         private readonly IAppointmentToRoom _appointmentRepo;
-        private readonly IAssignRoomToDoctor _assignRoomRepo;
+        private readonly IAssignWorks _assignRoomRepo;
         private readonly IEmailService _emailService;
 
-        public AppointmentHub(SafiContext context, IAppointmentToRoom appointmentRepo, IAssignRoomToDoctor assignRoomRepo, IEmailService emailService)
+        public AppointmentHub(SafiContext context, IAppointmentToRoom appointmentRepo, IAssignWorks assignRoomRepo, IEmailService emailService)
         {
             _context = context;
             _appointmentRepo = appointmentRepo;
@@ -53,39 +53,39 @@ namespace Safi.Hubs
                 {
                     var rooms = await _context.Rooms
                         .Include(r => r.Department)
-                        .Include(r => r.AssignRoomToDoctors!)
-                            .ThenInclude(a => a.Doctor)
+                        .Include(r => r.AssignWorks!)
+                            .ThenInclude(a => a.user)
                         .Where(r => r.GetType() == typeof(Room) &&
                                     r.DepartmentId == departmentId &&
                                     r.Status == RoomStatus.Available)
                         .AsNoTracking()
                         .ToListAsync();
 
-                    availableRooms = rooms.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                    availableRooms = rooms.Select(r => r.ToAvailableRoomInfoDto(r.AssignWorks?.ToList() ?? new List<AssignWorks>())).ToList();
                 }
                 else if (roomType == "ICU")
                 {
                     var icus = await _context.Icus
                         .Include(r => r.Department)
-                        .Include(r => r.AssignRoomToDoctors!)
-                            .ThenInclude(a => a.Doctor)
+                        .Include(r => r.AssignWorks!)
+                            .ThenInclude(a => a.user)
                         .Where(r => r.DepartmentId == departmentId && r.Status == RoomStatus.Available)
                         .AsNoTracking()
                         .ToListAsync();
 
-                    availableRooms = icus.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                    availableRooms = icus.Select(r => r.ToAvailableRoomInfoDto(r.AssignWorks?.ToList() ?? new List<AssignWorks>())).ToList();
                 }
                 else if (roomType == "Emergency")
                 {
                     var emergencies = await _context.Emergencies
                         .Include(r => r.Department)
-                        .Include(r => r.AssignRoomToDoctors!)
-                            .ThenInclude(a => a.Doctor)
+                        .Include(r => r.AssignWorks!)
+                            .ThenInclude(a => a.user)
                         .Where(r => r.DepartmentId == departmentId && r.Status == RoomStatus.Available)
                         .AsNoTracking()
                         .ToListAsync();
 
-                    availableRooms = emergencies.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                    availableRooms = emergencies.Select(r => r.ToAvailableRoomInfoDto(r.AssignWorks?.ToList() ?? new List<AssignWorks>())).ToList();
                 }
 
                 await Clients.Caller.SendAsync("ReceiveAvailableRooms", new
@@ -116,42 +116,42 @@ namespace Safi.Hubs
                 {
                     var rooms = await _context.Rooms
                         .Include(r => r.Department)
-                        .Include(r => r.AssignRoomToDoctors!)
-                            .ThenInclude(a => a.Doctor)
+                        .Include(r => r.AssignWorks!)
+                            .ThenInclude(a => a.user)
                         .Where(r => r.GetType() == typeof(Room) &&
-                                    r.DepartmentId == departmentId &&
-                                    r.Status == RoomStatus.Busy&&
-                                    r.AssignRoomToDoctors.Any(a => a.DoctorId == Doctorid))
+                                     r.DepartmentId == departmentId &&
+                                     r.Status == RoomStatus.Busy&&
+                                     r.AssignWorks.Any(a => a.userId == Doctorid))
                         .AsNoTracking()
                         .ToListAsync();
 
-                    ReservedRooms = rooms.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                    ReservedRooms = rooms.Select(r => r.ToAvailableRoomInfoDto(r.AssignWorks?.ToList() ?? new List<AssignWorks>())).ToList();
                 }
                 else if (roomType == "ICU")
                 {
                     var icus = await _context.Icus
                         .Include(r => r.Department)
-                        .Include(r => r.AssignRoomToDoctors!)
-                            .ThenInclude(a => a.Doctor)
+                        .Include(r => r.AssignWorks!)
+                            .ThenInclude(a => a.user)
                         .Where(r => r.DepartmentId == departmentId && r.Status == RoomStatus.Busy &&
-                                    r.AssignRoomToDoctors.Any(a => a.DoctorId == Doctorid))
+                                    r.AssignWorks.Any(a => a.userId == Doctorid))
                         .AsNoTracking()
                         .ToListAsync();
 
-                    ReservedRooms = icus.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                    ReservedRooms = icus.Select(r => r.ToAvailableRoomInfoDto(r.AssignWorks?.ToList() ?? new List<AssignWorks>())).ToList();
                 }
                 else if (roomType == "Emergency")
                 {
                     var emergencies = await _context.Emergencies
                         .Include(r => r.Department)
-                        .Include(r => r.AssignRoomToDoctors!)
-                            .ThenInclude(a => a.Doctor)
+                        .Include(r => r.AssignWorks!)
+                            .ThenInclude(a => a.user)
                         .Where(r => r.DepartmentId == departmentId && r.Status == RoomStatus.Busy &&
-                                    r.AssignRoomToDoctors.Any(a => a.DoctorId == Doctorid))
+                                    r.AssignWorks.Any(a => a.userId == Doctorid))
                         .AsNoTracking()
                         .ToListAsync();
 
-                    ReservedRooms = emergencies.Select(r => r.ToAvailableRoomInfoDto(r.AssignRoomToDoctors?.ToList() ?? new List<AssignRoomToDoctor>())).ToList();
+                    ReservedRooms = emergencies.Select(r => r.ToAvailableRoomInfoDto(r.AssignWorks?.ToList() ?? new List<AssignWorks>())).ToList();
                 }
 
                 await Clients.Caller.SendAsync("ReceiveReservedRooms", new

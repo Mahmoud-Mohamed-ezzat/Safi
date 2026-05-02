@@ -11,6 +11,7 @@ namespace Safi.Interfaces
         Task<IdentityResult> SignupAsAdminAsync(SignupFoRAdminOfWebDto model, string? imagePath);
         Task<IdentityResult> SignupAsPatientAsync(SignupAsPatientDto model, string? imagePath);
         Task<IdentityResult> SignupAsDoctorAsync(SignupOfDoctorDto model, string? imagePath);
+        Task<IdentityResult> SignupAsNurseAsync(SignupOfNurseDto model, string? imagePath);
         Task<IdentityResult> SignupAsStaffAsync(SignupOfStaffDto model, string? imagePath);
         Task<string> ForgetPasswordAsync(ForgetPasswordDto model);
         Task<IdentityResult> ResetPasswordAsync(ResetPasswordDto model);
@@ -20,6 +21,8 @@ namespace Safi.Interfaces
         Task<GetDoctorsDto?> GetDoctorByIdAsync(string id);
         Task<List<GetStaffsDto>> GetStaffAsync();
         Task<GetStaffsDto?> GetStaffByIdAsync(string id);
+        Task<List<GetNursesDto>> GetNursesAsync();
+        Task<GetNursesDto?> GetNurseByIdAsync(string id);
         Task<List<GetPatientsDto>> GetPatientsAsync();
         Task<GetPatientsDto?> GetPatientByIdAsync(string id);
         Task<GetPatientByIdOrNameDto?> GetPatientByIdOrNameAsync(int id,string name);
@@ -27,6 +30,7 @@ namespace Safi.Interfaces
         Task<GetSubAdminsDto?> GetSubAdminByIdAsync(string id);
 
         Task<bool> DeleteDoctorAsync(string userId);
+        Task<bool> DeleteNurseAsync(string userId);
         Task<bool> DeletePatientAsync(string userId);
         Task<bool> DeleteStaffAsync(string userId);
         Task<bool> DeleteSubAdminAsync(string userId);
@@ -35,6 +39,7 @@ namespace Safi.Interfaces
         Task<bool> ActivateAccountAsync(string userId);
 
         Task<List<GetDoctorsDto>> GetDeletedDoctorsAsync();
+        Task<List<GetNursesDto>> GetDeletedNursesAsync();
         Task<List<GetPatientsDto>> GetDeletedPatientsAsync();
         Task<List<GetSubAdminsDto>> GetDeactivatedUsersAsync();
 
@@ -44,6 +49,7 @@ namespace Safi.Interfaces
 
         Task<IdentityResult> UpdatePatientProfileAsync(UPdatePatientProfileDto model, string? imagePath);
         Task<IdentityResult> UpdateDoctorProfileAsync(UpdateDoctorProfileDto model, string? imagePath);
+        Task<IdentityResult> UpdateNurseProfileAsync(UpdateNurseProfileDto model, string? imagePath);
         Task<IdentityResult> UpdateStaffProfileAsync(UpdateStaffProfileDto model, string? imagePath);
         Task<IdentityResult> UpdateAdminProfileAsync(UpdateAdminProfileDto model, string? imagePath);
         Task<string> GetUserHistoryAsync(string userId);

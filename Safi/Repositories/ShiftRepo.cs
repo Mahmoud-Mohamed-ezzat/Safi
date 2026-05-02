@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Account;
-using Safi.Dto.AssignRoomToDoctorDto;
+using Safi.Dto.AssignWorksDto;
 using Safi.Dto.ShiftDto;
 using Safi.Interfaces;
 using Safi.Mapper;
@@ -68,16 +68,17 @@ namespace Safi.Repositories
         // Specific Retrieval
         public async Task<List<GetDoctorsDto>> GetDoctorsByShiftIdAsync(int shiftId)
         {
-            var assignments = await _context.AssignRoomToDoctors
-                .Include(a => a.Doctor)
-                .ThenInclude(d => d.Department)
+            var assignments = await _context.AssignWorks
+                .Include(a => a.user)
+                .ThenInclude(d => (d as Doctor).Department)
                 .Where(a => a.ShiftId == shiftId)
                 .AsNoTracking()
                 .ToListAsync();
 
             // Select distinct doctors
             var doctors = assignments
-                .Select(a => a.Doctor!)
+                .Where(a => a.user is Doctor)
+                .Select(a => (Doctor)a.user!)
                 .DistinctBy(d => d.Id)
                 .Select(d => d.ToGetDoctorsDto())
                 .ToList();
@@ -88,21 +89,21 @@ namespace Safi.Repositories
         public async Task<GetDoctorsDto?> GetDoctorByShiftIdAsync(int shiftId, string doctorId)
         {
             // Find if doctor is assigned in this shift
-            var assignment = await _context.AssignRoomToDoctors
-               .Include(a => a.Doctor)
-               .ThenInclude(d => d.Department)
-               .Where(a => a.ShiftId == shiftId && a.DoctorId == doctorId)
+            var assignment = await _context.AssignWorks
+               .Include(a => a.user)
+               .ThenInclude(d => (d as Doctor).Department)
+               .Where(a => a.ShiftId == shiftId && a.userId == doctorId)
                .AsNoTracking()
                .FirstOrDefaultAsync();
 
-            return assignment?.Doctor?.ToGetDoctorsDto();
+            return ((Doctor)assignment?.user)?.ToGetDoctorsDto();
         }
 
-        public async Task<List<AssignRoomToDoctorDto>> GetAssignmentsByShiftIdAsync(int shiftId)
+        public async Task<List<AssignWorksDto>> GetAssignmentsByShiftIdAsync(int shiftId)
         {
-            var assignments = await _context.AssignRoomToDoctors
+            var assignments = await _context.AssignWorks
                .Include(a => a.Room)
-               .Include(a => a.Doctor)
+               .Include(a => a.user)
                .Include(a => a.Shift)
                .Where(a => a.ShiftId == shiftId)
                .AsNoTracking()
@@ -111,11 +112,11 @@ namespace Safi.Repositories
             return assignments.Select(a => a.ToAssignRoomToDoctorDto()).ToList();
         }
 
-        public async Task<AssignRoomToDoctorDto?> GetAssignmentByShiftIdAndRoomIdAsync(int shiftId, int roomId)
+        public async Task<AssignWorksDto?> GetAssignmentByShiftIdAndRoomIdAsync(int shiftId, int roomId)
         {
-            var assignment = await _context.AssignRoomToDoctors
+            var assignment = await _context.AssignWorks
                 .Include(a => a.Room)
-                .Include(a => a.Doctor)
+                .Include(a => a.user)
                 .Include(a => a.Shift)
                 .Where(a => a.ShiftId == shiftId && a.RoomId == roomId)
                 .AsNoTracking()
@@ -126,18 +127,18 @@ namespace Safi.Repositories
 
         public async Task<List<GetDoctorsDto>> GetDoctorsAtDateByShiftIdAsync(int shiftId, DateOnly date)
         {
-            var assigns = await _context.AssignRoomToDoctors.Include(a => a.Doctor).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.EndDate >= date && a.StartDate <= date).ToListAsync();
+            var assigns = await _context.AssignWorks.Include(a => a.user).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.EndDate >= date && a.StartDate <= date).ToListAsync();
             if (assigns == null) return null;
-            var Doctors = assigns.Select(a => a.Doctor.ToGetDoctorsDto()).ToList();
+            var Doctors = assigns.Where(a => a.user is Doctor).Select(a => ((Doctor)a.user).ToGetDoctorsDto()).ToList();
             if (Doctors == null) return null;
             return Doctors;
         }
 
         public async Task<List<GetDoctorsshiftDto>> GetDoctorsAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId)
         {
-            var assigns = await _context.AssignRoomToDoctors.AsNoTracking().Include(a => a.Doctor).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.RoomId == roomId && a.EndDate >= date && a.StartDate <= date).ToListAsync();
+            var assigns = await _context.AssignWorks.AsNoTracking().Include(a => a.user).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.RoomId == roomId && a.EndDate >= date && a.StartDate <= date).ToListAsync();
             if (assigns == null) return null;
-            var Doctors = assigns.Select(a => a.Doctor.toGetDoctorsshiftDto(roomId)).ToList();
+            var Doctors = assigns.Where(a => a.user is Doctor).Select(a => ((Doctor)a.user).toGetDoctorsshiftDto(roomId)).ToList();
             if (Doctors == null) return null;
             return Doctors;
 
@@ -147,32 +148,32 @@ namespace Safi.Repositories
         {
             var doctor = await _userManager.FindByIdAsync(doctorId);
             if (doctor == null) return null;
-            var assign= await _context.AssignRoomToDoctors.Include(a=>a.Doctor).Include(a=>a.Room).FirstOrDefaultAsync(a=>a.ShiftId==shiftId&&a.EndDate>=date&&a.StartDate<=a.StartDate&&a.DoctorId==doctorId); 
+            var assign= await _context.AssignWorks.Include(a=>a.user).Include(a=>a.Room).FirstOrDefaultAsync(a=>a.ShiftId==shiftId&&a.EndDate>=date&&a.StartDate<=a.StartDate&&a.userId==doctorId); 
             if (assign == null) return null;
-            return assign?.Doctor?.ToGetDoctorsDto();
+            return ((Doctor)assign?.user)?.ToGetDoctorsDto();
         }
 
         public async Task<GetDoctorsDto?> GetDoctorAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId, string doctorId)
         {
             var doctor = await _userManager.FindByIdAsync(doctorId);
             if (doctor == null) return null;
-            var assign= await _context.AssignRoomToDoctors.Include(a=>a.Doctor).Include(a=>a.Room).FirstOrDefaultAsync(a=>a.ShiftId==shiftId&&a.EndDate>=date&&a.StartDate<=a.StartDate&&a.DoctorId==doctorId&&a.RoomId==roomId); 
+            var assign= await _context.AssignWorks.Include(a=>a.user).Include(a=>a.Room).FirstOrDefaultAsync(a=>a.ShiftId==shiftId&&a.EndDate>=date&&a.StartDate<=a.StartDate&&a.userId==doctorId&&a.RoomId==roomId); 
             if (assign == null) return null;
-            return assign?.Doctor?.ToGetDoctorsDto();
+            return ((Doctor)assign?.user)?.ToGetDoctorsDto();
         }
 
-        public async Task<List<AssignRoomToDoctorDto>> GetAssignmentsAtDateByShiftIdAsync(int shiftId, DateOnly date)
+        public async Task<List<AssignWorksDto>> GetAssignmentsAtDateByShiftIdAsync(int shiftId, DateOnly date)
         {
-            var assigns = await _context.AssignRoomToDoctors.Include(a => a.Doctor).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.EndDate >= date && a.StartDate <= date).ToListAsync();
+            var assigns = await _context.AssignWorks.Include(a => a.user).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.EndDate >= date && a.StartDate <= date).ToListAsync();
             if (assigns == null) return null;
             var Doctors = assigns.Select(a => a.ToAssignRoomToDoctorDto()).ToList();
             if (Doctors == null) return null;
             return Doctors;
         }
 
-        public async Task<List<AssignRoomToDoctorDto>> GetAssignmentsAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId)
+        public async Task<List<AssignWorksDto>> GetAssignmentsAtDateinroomByShiftIdAsync(int shiftId, DateOnly date, int roomId)
         {
-            var assigns = await _context.AssignRoomToDoctors.Include(a => a.Doctor).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.EndDate >= date && a.StartDate <= date&&a.RoomId==roomId).ToListAsync();
+            var assigns = await _context.AssignWorks.Include(a => a.user).Include(a => a.Shift).Where(a => a.ShiftId == shiftId && a.EndDate >= date && a.StartDate <= date&&a.RoomId==roomId).ToListAsync();
             if (assigns == null) return null;
             var Doctors = assigns.Select(a => a.ToAssignRoomToDoctorDto()).ToList();
             if (Doctors == null) return null;

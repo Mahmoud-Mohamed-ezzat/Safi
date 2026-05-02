@@ -11,8 +11,8 @@ namespace Safi.Models
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }
         //navigation property (1=>many)
-        public virtual ICollection<AssignRoomToDoctor>? AssignRoomToDoctors { get; set; } = new List<AssignRoomToDoctor>();
-
-
+        public virtual ICollection<AssignWorks>? AssignWorks { get; set; } = new List<AssignWorks>();
+        public virtual ICollection<Attendance>? Attendances { get; set; } = new List<Attendance>();
+        
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Safi.Models
@@ -20,7 +20,7 @@ namespace Safi.Models
         public virtual Department Department { get; set; }
 
         // Navigation properties
-        public virtual ICollection<AssignRoomToDoctor> ?AssignRoomToDoctors { get; set; } = new List<AssignRoomToDoctor>();
+        public virtual ICollection<AssignWorks> ?AssignWorks { get; set; } = new List<AssignWorks>();
         public virtual ICollection<AppointmentToRoom> ?Appointments { get; set; } = new List<AppointmentToRoom>();
     }
 }

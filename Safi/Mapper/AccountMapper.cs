@@ -1,4 +1,4 @@
-﻿using Safi.Dto.Account;
+using Safi.Dto.Account;
 using Safi.Dto.Department;
 using Safi.Models;
 
@@ -24,6 +24,24 @@ namespace Safi.Mapper
                 DepartmentName = doctor.Department?.Name ?? "",
                 IsDeleted = doctor.IsDeleted,
                 IsActive = doctor.IsActive
+            };
+        }
+        public static GetNursesDto ToGetNursesDto(this Nurse nurse)
+        {
+            return new GetNursesDto
+            {
+                Id = nurse.Id,
+                Name = nurse.Name,
+                Image = nurse.Image,
+                Email = nurse.Email,
+                Phone = nurse.PhoneNumber,
+                University = nurse.University,
+                DateOfBirth = nurse.DateOfBirth,
+                DepartmentId = nurse.DepartmentId,
+                Gender = nurse.Gender,
+                DepartmentName = nurse.Department?.Name ?? "",
+                IsDeleted = nurse.IsDeleted,
+                IsActive = nurse.IsActive
             };
         }
         public static GetStaffsDto ToGetStaffsDto(this Staff staff)

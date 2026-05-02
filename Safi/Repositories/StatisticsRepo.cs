@@ -19,10 +19,10 @@ namespace Safi.Repositories
             var totalDoctors = await _context.Doctors.IgnoreQueryFilters().CountAsync();
             var totalPatients = await _context.Patients.IgnoreQueryFilters().CountAsync();
 
-            var assignedDoctors = await _context.AssignRoomToDoctors
+            var assignedDoctors = await _context.AssignWorks
                 .IgnoreQueryFilters()
                 .Where(a => a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow)) // Active assignments
-                .Select(a => a.DoctorId)
+                .Select(a => a.userId)
                 .Distinct()
                 .CountAsync();
 
@@ -96,7 +96,7 @@ namespace Safi.Repositories
             // Rooms assigned to just one doctor vs more than one
             // We look at AssignRoomToDoctors grouped by RoomId (active assignments)
 
-            var assignments = _context.AssignRoomToDoctors
+            var assignments = _context.AssignWorks
                 .IgnoreQueryFilters()
                 .Where(a => a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow));
 

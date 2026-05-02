@@ -1,0 +1,18 @@
+using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
+
+namespace Safi.Dto.Account
+{
+    public class UpdateNurseProfileDto
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        [EmailAddress]
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? University { get; set; }
+        public int? DepartmentId { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
+        public IFormFile? Image { get; set; }
+    }
+}

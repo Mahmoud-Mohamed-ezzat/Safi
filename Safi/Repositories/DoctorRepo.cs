@@ -108,7 +108,7 @@ namespace Safi.Repositories
             _context.Reservations.RemoveRange(futureReservations);
 
             // 2. Close active room assignments
-            var activeAssignments = _context.AssignRoomToDoctors.Where(a => a.DoctorId == doctorId && (a.EndDate == null || a.EndDate > DateOnly.FromDateTime(DateTime.Now)));
+            var activeAssignments = _context.AssignWorks.Where(a => a.userId == doctorId && (a.EndDate == null || a.EndDate > DateOnly.FromDateTime(DateTime.Now)));
             foreach (var assignment in activeAssignments)
             {
                 assignment.EndDate = DateOnly.FromDateTime(DateTime.Now);
@@ -122,9 +122,9 @@ namespace Safi.Repositories
             foreach (var appointment in activeAppointments)
             {
                 // Try priority 1: Another doctor in the same room right now
-                var anotherDoctorInRoom = await _context.AssignRoomToDoctors
-                    .Where(a => a.RoomId == appointment.RoomId && a.DoctorId != doctorId && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
-                    .Select(a => a.DoctorId)
+                var anotherDoctorInRoom = await _context.AssignWorks
+                    .Where(a => a.RoomId == appointment.RoomId && a.userId != doctorId && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
+                    .Select(a => a.userId)
                     .FirstOrDefaultAsync();
 
                 if (anotherDoctorInRoom != null)
@@ -135,20 +135,20 @@ namespace Safi.Repositories
                 {
                     // Try priority 2: Doctor in same shift and department
                     // Need to find which shift the current time falls into or which shift the doctor was assigned to
-                    var currentShift = await _context.AssignRoomToDoctors
-                        .Where(a => a.DoctorId == doctorId && a.RoomId == appointment.RoomId)
+                    var currentShift = await _context.AssignWorks
+                        .Where(a => a.userId == doctorId && a.RoomId == appointment.RoomId)
                         .Select(a => a.ShiftId)
                         .FirstOrDefaultAsync();
 
-                    var fallbackDoctor = await _context.AssignRoomToDoctors
-                        .Include(a => a.Doctor)
+                    var fallbackDoctor = await _context.AssignWorks
+                        .Include(a => a.user)
                         .Where(a => a.ShiftId == currentShift
-                                    && a.DoctorId != doctorId
-                                    && a.Doctor != null
+                                    && a.userId != doctorId
+                                    && a.user != null
                                     && doctor.DepartmentId != null
-                                    && a.Doctor.DepartmentId == doctor.DepartmentId
+                                    && (a.user is Doctor) && ((Doctor)a.user).DepartmentId == doctor.DepartmentId
                                     && (a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.Now)))
-                        .Select(a => a.DoctorId)
+                        .Select(a => a.userId)
                         .FirstOrDefaultAsync();
 
                     if (fallbackDoctor != null)
