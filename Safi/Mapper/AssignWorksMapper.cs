@@ -15,7 +15,7 @@ namespace Safi.Mapper
                 DoctorId = assign.userId,
                 DoctorName = assign.user?.Name,
                 StartTime = assign.Shift != null ? assign.Shift.StartTime : default,
-                EndTime = assign.Shift != null ? assign.Shift.EndTime : default,
+                EndTime = assign.Shift != null ? assign.Shift.EndTime : null,
                 StartDate = assign.StartDate,
                 EndDate = assign.EndDate,
                 IsDeleted = assign.user?.IsDeleted ?? false,

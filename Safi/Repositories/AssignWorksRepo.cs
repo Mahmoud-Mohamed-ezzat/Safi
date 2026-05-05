@@ -45,7 +45,6 @@ namespace Safi.Repositories
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == dto.DoctorId);
                 var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == dto.RoomId);
-                var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.Id == dto.ShiftId);
 
                 if (user == null)
                 {
@@ -55,11 +54,6 @@ namespace Safi.Repositories
                 if (room == null)
                 {
                     throw new InvalidOperationException($"Room with ID {dto.RoomId} not found.");
-                }
-
-                if (shift == null)
-                {
-                    throw new InvalidOperationException($"Shift with ID {dto.ShiftId} not found.");
                 }
 
                 // If it's a doctor, validate department match
@@ -75,13 +69,6 @@ namespace Safi.Repositories
                     if (nurse.DepartmentId != room.DepartmentId)
                     {
                         throw new InvalidOperationException($"Nurse belongs to department {nurse.DepartmentId}, but room {dto.RoomId} belongs to department {room.DepartmentId}.");
-                    }
-                }
-                else if (user is Staff staff)
-                {
-                    if (staff.DepartmentId != room.DepartmentId)
-                    {
-                        throw new InvalidOperationException($"Staff belongs to department {staff.DepartmentId}, but room {dto.RoomId} belongs to department {room.DepartmentId}.");
                     }
                 }
 

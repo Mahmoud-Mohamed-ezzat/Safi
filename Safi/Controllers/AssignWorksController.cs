@@ -90,6 +90,8 @@ namespace Safi.Controllers
             return Ok(assignments);
         }
 
+
+
         [HttpGet("GetAssignWorksForAttendancetoday")]
         public async Task<IActionResult> GetAssignWorksForAttendancetoday()
         {
