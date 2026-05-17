@@ -9,6 +9,7 @@ namespace Safi.Interfaces
         public Task<List<GetAttendanceDto?>> GetByIdOfDoctorAsync(string id);
         public Task<List<GetAttendanceDto?>> GetByIdAndDateOfDoctorAsync(string id,DateOnly Day);
         public Task<List<GetAttendanceDto?>> GetAllByDateAsync(DateOnly Day);
+        public Task<List<GetAttendanceDto?>> GetAllByDateAndShiftAsync(DateOnly Day,int shiftid);
         public Task<List<GetAttendanceDto?>> GetAllTodayAsync();
         public Task<GetAttendanceDto> CreateAttendanceAsync(CreateAttendanceDto dto);
         public Task<GetAttendanceDto> UpdateAttendanceAsync(int id, UpdateAttendanceDto dto);

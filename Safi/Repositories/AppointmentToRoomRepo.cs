@@ -137,6 +137,17 @@ namespace Safi.Repositories
                 user.History += $" \n Appointment in room {appointment.RoomId} with doctor {doctorName} in department {departmentName} Report: {dto.Report} Medicines: {medicines} started at {appointment.StartTime} ended at {dto.EndTime}";
             }
 
+            // Create a formal report record
+            var report = new ReportDoctorToPatient
+            {
+                PatientId = appointment.PatientId,
+                DoctorId = dto.CreatedBy ?? appointment.DoctorId ?? string.Empty,
+                Report = dto.Report,
+                Medicines = dto.Medicines ?? new List<string>(),
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.ReportDoctorToPatients.AddAsync(report);
+
             await _context.SaveChangesAsync();
 
             // Load navigation properties

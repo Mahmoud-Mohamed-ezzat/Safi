@@ -25,6 +25,8 @@ namespace Safi.Models
         public virtual Bill? Bill { get; set; }
         public DateTime? StartTime { get; set; }=DateTime.UtcNow;
         public DateTime? EndTime { get; set; }
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? TotalPrice { get; set; }
         public virtual ICollection<AppointmentPrice>? AppointmentPrices { get; set; } = new List<AppointmentPrice>();
     }
 }

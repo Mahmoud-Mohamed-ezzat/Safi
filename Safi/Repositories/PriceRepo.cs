@@ -51,7 +51,9 @@ namespace Safi.Repositories
                 Price = dto.Price,
                 St_Date = effectiveStDate,
                 End_Date = dto.End_Date,
-                Is_Deleted = false
+                Is_Deleted = false,
+                CreatedAt=DateTime.UtcNow
+                
             };
             await _context.Prices.AddAsync(newPrice);
             await _context.SaveChangesAsync();
@@ -176,6 +178,17 @@ namespace Safi.Repositories
             .ToListAsync();
             var pricesDto = allPrices.Select(x=>x.ToGetPriceDto()).ToList();
             return pricesDto;
+        }
+
+        public async Task<List<GetPriceDto>> GetPricesByServiceAndDateRangeAsync(string serviceName, DateOnly startDate, DateOnly endDate)
+        {
+            var prices = await _context.Prices
+                .Where(p => p.ServiceName == serviceName
+                         && !p.Is_Deleted
+                         && p.St_Date <= endDate
+                         && (p.End_Date == null || p.End_Date >= startDate))
+                .ToListAsync();
+            return prices.Select(p => p.ToGetPriceDto()).ToList();
         }
     }
 }

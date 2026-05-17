@@ -174,6 +174,7 @@ builder.Services.AddScoped<HeartDiseasModel>();
 builder.Services.AddTransient<LiverModel>();
 builder.Services.AddScoped<MedicineModelService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<PriceSegmentCalculator>();
 builder.Services.AddScoped<IDepartment, DepartmentRepo>();
 builder.Services.AddScoped<IPrices,PriceRepo>();
 builder.Services.AddScoped<IReservation, ReservationRepo>();
@@ -191,6 +192,8 @@ builder.Services.AddScoped<IDoctor, DoctorRepo>();
 builder.Services.AddScoped<IAnalysis, AnalysisRepo>();
 builder.Services.AddScoped<IAccount, AccountRepo>();
 builder.Services.AddScoped<IAttendance, AttendanceRepo>();
+builder.Services.AddScoped<IBill, BillRepo>();
+builder.Services.AddHostedService<BillBackgroundService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 

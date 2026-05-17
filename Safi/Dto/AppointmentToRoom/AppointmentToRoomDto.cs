@@ -18,5 +18,7 @@ namespace Safi.Dto.AppointmentToRoom
         public DateTime? EndTime { get; set; }
         public bool IsDeleted { get; set; }
         public bool IsActive { get; set; }
+        public int? BillId { get; set; }
+        public decimal TotalAmount { get; set; }
     }
 }

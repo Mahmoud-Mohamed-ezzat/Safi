@@ -125,5 +125,14 @@ namespace Safi.Controllers
             }
             return NoContent();
         }
+
+
+        [Authorize(Roles = "Admin,subadmin,Staff")]
+        [HttpGet("date/{date}/shift/{shiftid}")]
+        public async Task<IActionResult> GetAllByDateAndShift(DateOnly date, int shiftid)
+        {
+            var attendances = await _attendanceRepo.GetAllByDateAndShiftAsync(date, shiftid);
+            return Ok(attendances);
+        }
     }
 }

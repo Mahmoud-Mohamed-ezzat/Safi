@@ -16,5 +16,6 @@ namespace Safi.Interfaces
         Task<decimal> GetPriceNowAsync(string ServiceName);
         Task<decimal> GetPriceByIdAsync(int Id);
         Task<decimal> GetPriceInSpecificDateAsync(string ServiceName,DateOnly date);
+        Task<List<GetPriceDto>> GetPricesByServiceAndDateRangeAsync(string serviceName, DateOnly startDate, DateOnly endDate);
     }
 }

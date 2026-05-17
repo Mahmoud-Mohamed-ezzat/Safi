@@ -98,7 +98,7 @@ namespace Safi.Controllers
                 Directory.CreateDirectory(imagesFolder);
                 var filePath = Path.Combine(imagesFolder, fileName);
                 await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
-                // Return a frontend-accessible relative URL
+                // Return a frontend - accessible relative URL
                 return $"/images/{fileName}";
             }
             catch { return null; }
@@ -164,7 +164,7 @@ namespace Safi.Controllers
             return StatusCode(500, new { errors = result.Errors.Select(e => e.Description) });
         }
 
-        //[Authorize(Roles = "Admin,subadmin")]
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpPost("SignupAsNurse")]
         public async Task<IActionResult> SignupAsNurse([FromForm] SignupOfNurseDto model)
         {
@@ -201,7 +201,7 @@ namespace Safi.Controllers
 
             return Ok(response);
         }
-        //[Authorize]
+        [Authorize]
         [HttpGet("GetDoctors")]
         public async Task<IActionResult> GetDoctors() => Ok(await _accountRepo.GetDoctorsAsync());
 
@@ -239,11 +239,11 @@ namespace Safi.Controllers
             return Ok(result);
         }
 
-        //[Authorize(Roles = "Admin,subadmin")]
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpGet("GetNurses")]
         public async Task<IActionResult> GetNurses() => Ok(await _accountRepo.GetNursesAsync());
 
-        //[Authorize(Roles = "Admin,subadmin")]
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpGet("GetNurses/{id}")]
         public async Task<IActionResult> GetNurseById(string id)
         {
@@ -251,7 +251,7 @@ namespace Safi.Controllers
             if (result == null) return NotFound("Nurse not found");
             return Ok(result);
         }
-        //[Authorize(Roles = "Admin,subadmin")]
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpGet("GetPatients")]
         public async Task<IActionResult> GetPatients() => Ok(await _accountRepo.GetPatientsAsync());
 
@@ -318,7 +318,7 @@ namespace Safi.Controllers
             return NotFound("Staff not found");
         }
 
-        //[Authorize(Roles = "Admin,subadmin")]
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpDelete("nurse/{userId}")]
         public async Task<IActionResult> DeleteNurse(string userId)
         {
@@ -359,7 +359,7 @@ namespace Safi.Controllers
         [HttpGet("deleted-doctors")]
         public async Task<IActionResult> GetDeletedDoctors() => Ok(await _accountRepo.GetDeletedDoctorsAsync());
 
-        //[Authorize(Roles = "Admin,SubAdmin")]
+        [Authorize(Roles = "Admin,SubAdmin")]
         [HttpGet("deleted-nurses")]
         public async Task<IActionResult> GetDeletedNurses() => Ok(await _accountRepo.GetDeletedNursesAsync());
 
@@ -413,7 +413,7 @@ namespace Safi.Controllers
             return BadRequest(result.Errors.Select(e => e.Description));
         }
 
-        //[Authorize(Roles = "Nurse")]
+        [Authorize(Roles = "Nurse")]
         [HttpPut("UpdateNurseProfile")]
         public async Task<IActionResult> UpdateNurseProfile([FromForm] UpdateNurseProfileDto model)
         {

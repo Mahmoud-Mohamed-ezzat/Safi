@@ -9,13 +9,11 @@ public class ReservationHub : Hub
 {
     private readonly SafiContext _context;
     private readonly IEmailService _emailService;
-    private readonly IBill _bill;
 
-    public ReservationHub(SafiContext context, IBill bill, IEmailService emailService)
+    public ReservationHub(SafiContext context, IEmailService emailService)
     {
         _context = context;
         _emailService = emailService;
-        _bill = bill;
     }
 
     public async Task TestMe(string someRandomText)
@@ -48,7 +46,7 @@ public class ReservationHub : Hub
                 r.Time,
                 r.Status,
                 r.PatientId,
-                IsAvailable = r.Status != "Reserved"
+                IsAvailable = r.Status != "Reserved" && r.Status != "reserved"
             })
             .ToListAsync();
         await Clients.Caller.SendAsync("ReceiveSlots", reservations);
@@ -70,7 +68,8 @@ public class ReservationHub : Hub
             return;
         }
 
-        if (reservation.Status == "Reserved")
+        if (reservation.Status != null &&
+            reservation.Status.Equals("Reserved", StringComparison.OrdinalIgnoreCase))
         {
             await Clients.Caller.SendAsync("ReservationResult", new
             {
@@ -81,16 +80,17 @@ public class ReservationHub : Hub
             return;
         }
 
-        // 1-force user to reserve just one block no more
+        // Force user to reserve just one slot max
         var existingReservation = await _context.Reservations
-            .AnyAsync(r => r.PatientId == patientId && r.Status == "Reserved");
+            .AnyAsync(r => r.PatientId == patientId &&
+                r.Status != null && r.Status.ToLower() == "reserved" && r.Time.Date == reservation.Time.Date);
 
         if (existingReservation)
         {
             await Clients.Caller.SendAsync("ReservationResult", new
             {
                 Success = false,
-                Message = "You already have an active reservation. You cannot reserve more than one slot.",
+                Message = "You already have an active reservation on this day. You cannot reserve more than one slot.",
                 ReservationId = reservationId
             });
             return;
@@ -98,62 +98,29 @@ public class ReservationHub : Hub
 
         try
         {
-            //var Price=await _Prices.GetPriceAsync(string Pricename);
-            // Use patientId parameter (not reservation.PatientId which may be null/old value)
-            var user = await _context.Patients
-                .Include(p => p.Departments)
-                .FirstOrDefaultAsync(p => p.Id == patientId);
-
-            // Include Department navigation property
             var doctor = await _context.Doctors
                 .Include(d => d.Department)
                 .FirstOrDefaultAsync(d => d.Id == reservation.DoctorId);
 
-            if (user == null || doctor == null || doctor.Department == null)
+            if (doctor == null || doctor.Department == null)
             {
                 await Clients.Caller.SendAsync("ReservationResult", new
                 {
                     Success = false,
-                    Message = "Patient, Doctor, or Department not found",
+                    Message = "Doctor or Department not found",
                     ReservationId = reservationId
                 });
                 return;
             }
 
+            // Save the reservation — PatientId is a nullable string FK, no Patient row required
             reservation.PatientId = patientId;
             reservation.Status = "Reserved";
-
-            ////Create bill here or add it to specific bill
-            //var activeBillId = await _bill.CheckThisBillActive(patientId);
-            //if (activeBillId == null)
-            //{
-            //    await _bill.CreateBill(new Safi.Dto.Bill.createbillDto
-            //    {                 
-            //          Status="open",
-            //          TotalAmount=,
-            //          PatientId= reservation.PatientId,
-            //     });
-            //}
-            //else
-            //{
-            //    await _bill.AddItemToBillAsync(activeBillId.Value, new Safi.Dto.Bill.CreateBillItemDto
-            //    {
-            //        Description = $"Consultation with Dr. {doctor.Name} on {reservation.Time:f}",
-            //        Amount = doctor.ConsultationFee
-            //    });
-            //}
-            // Check if department already exists in patient's departments by Id
-            var departmentExists = (user.Departments ?? Enumerable.Empty<Department>()).Any(d => d.Id == doctor.Department.Id);
-            if (!departmentExists)
-            {
-                user.Departments ??= new List<Department>();
-                user.Departments.Add(doctor.Department);
-            }
             await _context.SaveChangesAsync();
 
             var dayStr = reservation.Time.ToString("yyyy-MM-dd");
 
-            // Notify the caller of success
+            // Notify caller of success
             await Clients.Caller.SendAsync("ReservationResult", new
             {
                 Success = true,
@@ -162,7 +129,7 @@ public class ReservationHub : Hub
                 PatientId = patientId
             });
 
-            // Notify everyone in the group that this slot is now taken
+            // Notify all group members that slot is taken
             await Clients.Group($"{reservation.DoctorId}_{dayStr}")
                 .SendAsync("SlotReserved", new
                 {
@@ -174,26 +141,31 @@ public class ReservationHub : Hub
                     PatientId = patientId,
                 });
 
-            // Send Email to Patient
-            if (user.Email != null)
-            {
-                await _emailService.SendEmailAsync(new SendEmailDto
-                {
-                    ToEmail = user.Email,
-                    Subject = "Reservation Confirmation",
-                    Body = $"Dear {user.Name},\nYour reservation with Dr. {reservation.Doctor.Name} on {reservation.Time:f} has been confirmed.\n\nThank you for choosing Safi."
-                });
-            }
+            // Queue billing/email outbox only if a real patient row exists
+            var user = await _context.Patients
+                .FirstOrDefaultAsync(p => p.Id == patientId);
 
-            // Send Email to Doctor
-            if (doctor.Email != null)
+            if (user != null)
             {
-                await _emailService.SendEmailAsync(new SendEmailDto
+                var payload = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    ToEmail = doctor.Email,
-                    Subject = "New Reservation Notification",
-                    Body = $"Dear Dr. {reservation.Doctor.Name},\nYou have a new reservation from patient {user.Name} on {reservation.Time:f}."
+                    ReservationId = reservation.Id,
+                    PatientId = patientId,
+                    DoctorId = reservation.DoctorId,
+                    DepartmentId = doctor.DepartmentId,
+                    DepartmentName = doctor.Department.Name,
+                    Time = reservation.Time.ToString("yyyy-MM-dd hh:mm tt"),
+                    DoctorName = doctor.Name,
+                    PatientName = user.Name,
+                    DoctorEmail = doctor.Email,
+                    PatientEmail = user.Email,
                 });
+                await _context.OutboxMessages.AddAsync(new OutboxMessage
+                {
+                    Type = "BillAndEmailForReservation",
+                    Payload = payload,
+                });
+                await _context.SaveChangesAsync();
             }
         }
         catch (DbUpdateConcurrencyException)
@@ -201,10 +173,18 @@ public class ReservationHub : Hub
             await Clients.Caller.SendAsync("ReservationResult", new
             {
                 Success = false,
-                Message = "Race condition: slot was reserved by another patient",
+                Message = "Race condition: slot was just reserved by another patient. Please refresh.",
+                ReservationId = reservationId
+            });
+        }
+        catch (Exception ex)
+        {
+            await Clients.Caller.SendAsync("ReservationResult", new
+            {
+                Success = false,
+                Message = $"Server error: {ex.Message}",
                 ReservationId = reservationId
             });
         }
     }
 }
-

@@ -6,6 +6,10 @@ using Safi.Interfaces;
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Mapper;
 using Safi.Models;
+using Safi.Services;
+using Safi.Dto.Bill;
+using Safi.Dto.OutBoxDto;
+using System.Text.Json;
 
 namespace Safi.Hubs
 {
@@ -15,13 +19,17 @@ namespace Safi.Hubs
         private readonly IAppointmentToRoom _appointmentRepo;
         private readonly IAssignWorks _assignRoomRepo;
         private readonly IEmailService _emailService;
+        private readonly PriceSegmentCalculator _calculator;
+        private readonly IBill _bill;
 
-        public AppointmentHub(SafiContext context, IAppointmentToRoom appointmentRepo, IAssignWorks assignRoomRepo, IEmailService emailService)
+        public AppointmentHub(SafiContext context, IAppointmentToRoom appointmentRepo, IAssignWorks assignRoomRepo, IEmailService emailService, PriceSegmentCalculator calculator, IBill bill)
         {
             _context = context;
             _appointmentRepo = appointmentRepo;
             _assignRoomRepo = assignRoomRepo;
             _emailService = emailService;
+            _calculator = calculator;
+            _bill = bill;
         }
         // Join a department-specific room group (e.g., "Rooms_1", "ICUs_1", "Emergencies_1")
         public async Task JoinDepartmentRoomGroup(int departmentId, string roomType)
@@ -339,41 +347,8 @@ namespace Safi.Hubs
                 var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == dto.PrimaryDoctorId);
                 var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == dto.PatientId);
 
-                // Send email notification to doctor
-                if (doctor != null && !string.IsNullOrEmpty(doctor.Email))
-                {
-                    var patientName = patient?.Name ?? "Unknown Patient";
-                    await _emailService.SendEmailAsync(new SendEmailDto
-                    {
-                        ToEmail = doctor.Email,
-                        Subject = "New Appointment Created",
-                        Body = $@"
-                            <h2>New Appointment Notification</h2>
-                            <p>Dear Dr. {doctor.Name},</p>
-                            <p>A new appointment has been created for you.</p>
-                            <p><strong>Appointment Details:</strong></p>
-                            <ul>
-                                <li><strong>Patient:</strong> {patientName}</li>
-                                <li><strong>Room:</strong> {roomType} #{room.Number}</li>
-                                <li><strong>Department:</strong> {room.Department?.Name ?? "N/A"}</li>
-                                <li><strong>Start Time:</strong> {appointment.StartTime:MMMM dd, yyyy hh:mm tt}</li>
-                            </ul>
-                            <p>Please be prepared for this appointment.</p>
-                            <p>Best regards,<br/>Safi Hospital Team</p>"
-                    });
-                }
-
-                var groupName = $"{roomType}s_{room.DepartmentId}";
-
-                // Notify caller
-                await Clients.Caller.SendAsync("AppointmentCreationResult", new
-                {
-                    Success = true,
-                    Message = "Appointment created successfully",
-                    Appointment = appointment
-                });
-
                 // Broadcast to group
+                var groupName = $"{roomType}s_{room.DepartmentId}";
                 await Clients.Group(groupName).SendAsync("AppointmentCreated", new
                 {
                     RoomId = dto.RoomId,
@@ -384,6 +359,61 @@ namespace Safi.Hubs
                     PrimaryDoctorId = dto.PrimaryDoctorId,
                     Message = "New appointment created"
                 });
+
+                // Find or create bill
+                var billId = await _bill.CheckThisBillActive(dto.PatientId);
+                if (billId == 0)
+                {
+                    var newBill = await _bill.CreateBill(
+                        new createbillDto
+                        {
+                            PatientId = dto.PatientId,
+                            Status = "Open",
+                            Details = $"Bill for appointment in {roomType} #{room.Number} - {room.Department?.Name ?? "N/A"}",
+                            currency = "EGP",
+                            TotalAmount = 0,
+                        });
+                    billId = newBill.id;
+                }
+                else
+                {
+                    var existingBill = await _context.Bills.FirstOrDefaultAsync(b => b.Id == billId);
+                    if (existingBill != null)
+                    {
+                        existingBill.Details += $"\nAdditional charge for appointment in {roomType} #{room.Number} - {room.Department?.Name ?? "N/A"}";
+                    }
+                }
+
+                // Link bill to appointment
+                var appointmentEntity = await _context.AppointmentToRooms.FirstOrDefaultAsync(a => a.Id == appointment.Id);
+                if (appointmentEntity != null)
+                {
+                    appointmentEntity.BillId = billId;
+                    appointment.BillId = billId;
+                    await _context.SaveChangesAsync();
+                }
+
+                // Add outbox message for doctor email
+                var outboxMsg = new OutboxMessage
+                {
+                    Type = "CreateAppointmentEmail",
+                    Payload = System.Text.Json.JsonSerializer.Serialize(new Safi.Dto.OutBoxDto.CreateAppointmentEmailDto
+                    {
+                        AppointmentId = appointment.Id,
+                        PatientId = appointment.PatientId,
+                        PatientName = patient?.Name ?? "Unknown Patient",
+                        DoctorId = appointment.DoctorId,
+                        DoctorName = doctor?.Name ?? "Unknown",
+                        DoctorEmail = doctor?.Email,
+                        RoomType = roomType,
+                        RoomNumber = room.Number.ToString(),
+                        DepartmentName = room.Department?.Name ?? "N/A",
+                        StartTime = appointment.StartTime ?? DateTime.UtcNow
+                    })
+                };
+                _context.OutboxMessages.Add(outboxMsg);
+                await _context.SaveChangesAsync();
+
             }
             catch (Exception ex)
             {
@@ -407,7 +437,7 @@ namespace Safi.Hubs
 
                 if (activeAppointment != null)
                 {
-                    if (dto.CreatedBy != activeAppointment.DoctorId || dto.CreatedBy != activeAppointment.DoctorId)
+                    if (dto.CreatedBy != activeAppointment.DoctorId && dto.CreatedBy != activeAppointment.CreatedBy)
                     {
                         await Clients.Caller.SendAsync("ReleaseRoomResult", new
                         {
@@ -422,10 +452,42 @@ namespace Safi.Hubs
                 }
 
                 // Change status to Available
-                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == roomId);
+                var room = await _context.Rooms.Include(r => r.Department).FirstOrDefaultAsync(r => r.Id == roomId);
                 room!.Status = RoomStatus.Available;
                 await _context.SaveChangesAsync();
-                db.Commit();
+
+                // Add outbox message for billing and email
+                if (activeAppointment != null)
+                {
+                    var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == activeAppointment.PatientId);
+                    var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == activeAppointment.DoctorId);
+                    
+                    var outboxMsg = new OutboxMessage
+                    {
+                        Type = "BillAndEmailForAppointment",
+                        Payload = System.Text.Json.JsonSerializer.Serialize(new Safi.Dto.OutBoxDto.BillAndEmailForAppointmentDto
+                        {
+                            AppointmentId = activeAppointment.Id,
+                            PatientId = activeAppointment.PatientId,
+                            PatientName = patient?.Name ?? "Unknown",
+                            PatientEmail = patient?.Email,
+                            DoctorId = activeAppointment.DoctorId,
+                            DoctorName = doctor?.Name ?? "Unknown",
+                            DoctorEmail = doctor?.Email,
+                            TotalAmount = 0, // Will be calculated by background service
+                            RoomType = roomType,
+                            RoomNumber = room.Number,
+                            DepartmentName = room.Department?.Name ?? "Unknown",
+                            StartTime = activeAppointment.StartTime ?? DateTime.UtcNow,
+                            EndTime = activeAppointment.EndTime ?? DateTime.UtcNow
+                        })
+                    };
+                    _context.OutboxMessages.Add(outboxMsg);
+                    await _context.SaveChangesAsync();
+                }
+
+
+                await db.CommitAsync();
                 var groupName = $"{roomType}s_{room.DepartmentId}";
 
                 // Notify caller
@@ -465,7 +527,7 @@ namespace Safi.Hubs
             }
             catch (Exception ex)
             {
-                db.Rollback();
+                await db.RollbackAsync();
                 await Clients.Caller.SendAsync("ReleaseRoomResult", new
                 {
                     Success = false,

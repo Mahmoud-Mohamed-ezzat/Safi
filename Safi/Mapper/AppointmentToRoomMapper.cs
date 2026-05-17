@@ -36,7 +36,8 @@ namespace Safi.Mapper
                 StartTime = entity.StartTime,
                 EndTime = entity.EndTime,
                 IsDeleted = entity.Patient?.IsDeleted ?? false,
-                IsActive = entity.Patient?.IsActive ?? true
+                IsActive = entity.Patient?.IsActive ?? true,
+                BillId = entity.BillId
             };
         }
 

@@ -97,5 +97,16 @@ namespace Safi.Repositories
             await _context.SaveChangesAsync();
             return attendance.ToGetAttendanceDto();
         }
+
+        public async Task<List<GetAttendanceDto?>> GetAllByDateAndShiftAsync(DateOnly Day,int shiftid)
+        {
+            var attendances = await _context.Attendance
+            .Include(a => a.Doctor)
+            .Include(a => a.DoctorShift)
+            .Where(a => a.Date == Day && a.DoctorShift.Id == shiftid)
+            .AsNoTracking()
+            .ToListAsync();
+            return attendances.Select(a => (GetAttendanceDto?)a.ToGetAttendanceDto()).ToList();
+        }
     }
 }

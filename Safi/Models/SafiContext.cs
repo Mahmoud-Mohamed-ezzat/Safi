@@ -44,6 +44,7 @@ namespace Safi.Models
 
         public DbSet<Analysis> Analysis { get; set; }
         public DbSet<Attendance> Attendance { get; set; }
+        public DbSet<OutboxMessage> OutboxMessages { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -158,6 +159,9 @@ namespace Safi.Models
                 .HasIndex(a => new { a.ServiceName, a.St_Date, a.End_Date, a.Id }).IsUnique();
             //Bill
             builder.Entity<Bill>()
+                .HasIndex(a => a.Id).IsUnique();
+            //OutboxMessage
+            builder.Entity<OutboxMessage>()
                 .HasIndex(a => a.Id).IsUnique();
             // Seed Roles
 

@@ -86,7 +86,9 @@ namespace Safi.Repositories
             try
             {
                 var availableTime = await _context.TimeAvailableOfDoctors
+                    .AsNoTracking()
                     .Include(t => t.Doctor)
+                        .ThenInclude(d => d.Department)
                     .FirstOrDefaultAsync(t => t.Id == availableTimeId);
 
                 if (availableTime == null)
@@ -100,7 +102,10 @@ namespace Safi.Repositories
 
                 // Only delete future or present (today) reservations
                 var reservations = await _context.Reservations
+                    .AsNoTracking()
                     .Include(r => r.Patient)
+                    .Include(r => r.Doctor)
+                        .ThenInclude(d => d.Department)
                     .Where(r => r.DoctorId == availableTime.DoctorId
                              && r.Time.Date == targetDate.Date)
                     .ToListAsync();
@@ -110,39 +115,43 @@ namespace Safi.Repositories
 
                 // Collect reserved patients to notify before deleting
                 var reservedReservations = reservations
-                    .Where(r => r.Status == "Reserved" && r.Patient != null && !string.IsNullOrEmpty(r.Patient.Email))
+                    .Where(r => r.Status != null && r.Status.Equals("Reserved", StringComparison.OrdinalIgnoreCase) && r.Patient != null)
                     .ToList();
+
+                foreach (var r in reservedReservations)
+                {
+                    var doctorName = r.Doctor?.Name ?? "your doctor";
+                    var departmentName = r.Doctor?.Department?.Name;
+                    var doctorId = r.DoctorId ?? string.Empty;
+
+                    // Direct lookup fallback if navigation property is null
+                    if (string.IsNullOrEmpty(departmentName) && r.Doctor?.DepartmentId != null)
+                    {
+                        var dept = await _context.Departments.FindAsync(r.Doctor.DepartmentId);
+                        departmentName = dept?.Name;
+                    }
+                    departmentName ??= "Unknown";
+
+                    var outboxMsg = new OutboxMessage
+                    {
+                        Type = "CancelReservationAndBill",
+                        Payload = System.Text.Json.JsonSerializer.Serialize(new Safi.Dto.OutBoxDto.CancelReservationAndBillDto
+                        {
+                            ReservationId = r.Id,
+                            PatientId = r.PatientId!,
+                            PatientName = r.Patient!.Name ?? "Patient",
+                            PatientEmail = r.Patient.Email,
+                            DoctorName = doctorName,
+                            DoctorId = doctorId,
+                            ReservationTime = r.Time,
+                            DepartmentName = departmentName
+                        })
+                    };
+                    _context.OutboxMessages.Add(outboxMsg);
+                }
 
                 _context.Reservations.RemoveRange(reservations);
                 await _context.SaveChangesAsync();
-
-                // Send cancellation emails (fire-and-forget per patient — don't block the delete)
-                var doctorName = availableTime.Doctor?.Name ?? "your doctor";
-                var dateStr = availableTime.Day.ToString("dddd, MMMM dd, yyyy");
-                var timeStr = availableTime.StartTime.ToString("hh:mm tt");
-
-                var emailTasks = reservedReservations.Select(r =>
-                    _emailService.SendEmailAsync(new SendEmailDto
-                    {
-                        ToEmail = r.Patient!.Email!,
-                        Subject = "Reservation Cancelled – Safi Hospital",
-                        Body =
-                            $"Dear {r.Patient.Name ?? "Patient"},\n\n" +
-                            $"We regret to inform you that your reservation has been cancelled.\n\n" +
-                            $"Doctor : {doctorName}\n" +
-                            $"Date   : {dateStr}\n" +
-                            $"Time   : {r.Time:hh:mm tt}\n\n" +
-                            $"We apologise for any inconvenience caused. " +
-                            $"Please contact us or book a new appointment at your earliest convenience.\n\n" +
-                            $"Regards,\nSafi Hospital"
-                    })
-                );
-
-                // Await all emails but don't let a failed email affect the delete result
-                await Task.WhenAll(emailTasks.Select(async t =>
-                {
-                    try { await t; } catch { /* log if needed */ }
-                }));
 
                 return true;
             }

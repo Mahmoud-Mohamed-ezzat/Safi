@@ -44,7 +44,8 @@ namespace Safi.Repositories
             try
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == dto.DoctorId);
-                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == dto.RoomId);
+                var room = await _context.Rooms.Include(r=>r.Department).FirstOrDefaultAsync(r => r.Id == dto.RoomId);
+                var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.Id == dto.ShiftId);
 
                 if (user == null)
                 {
@@ -54,6 +55,11 @@ namespace Safi.Repositories
                 if (room == null)
                 {
                     throw new InvalidOperationException($"Room with ID {dto.RoomId} not found.");
+                }
+
+                if (shift == null)
+                {
+                    throw new InvalidOperationException($"Shift with ID {dto.ShiftId} not found.");
                 }
 
                 // If it's a doctor, validate department match
@@ -100,15 +106,21 @@ namespace Safi.Repositories
 
         public async Task<AssignWorksDto?> UpdateAsync(int id, UpdateAssignWorksDto dto)
         {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             try
             {
                 var assignment = await _context.AssignWorks.FirstOrDefaultAsync(a => a.Id == id);
                 if (assignment == null) return null;
 
                 if (dto.RoomId.HasValue) assignment.RoomId = dto.RoomId.Value;
-                if (!string.IsNullOrEmpty(dto.DoctorId)) assignment.userId = dto.DoctorId;
+                if (!string.IsNullOrEmpty(dto.DoctorId)) assignment.userId = dto.DoctorId; // Fixed: UserId not userId
+                if (dto.ShiftId.HasValue) assignment.ShiftId = dto.ShiftId.Value;
+                if (dto.StartDate.HasValue) assignment.StartDate = dto.StartDate.Value;
+                if (dto.EndDate.HasValue) assignment.EndDate = dto.EndDate.Value;
 
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 await _context.Entry(assignment).Reference(a => a.Room).LoadAsync();
                 await _context.Entry(assignment).Reference(a => a.user).LoadAsync();
@@ -118,6 +130,7 @@ namespace Safi.Repositories
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 throw new InvalidOperationException($"Failed to update assignment: {ex.Message}", ex);
             }
         }
