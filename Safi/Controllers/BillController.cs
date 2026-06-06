@@ -31,5 +31,18 @@ namespace Safi.Controllers
             var bills = await _BillRepo.GetAllBillsInRangeOfDate(startDate, EndDate);
             return Ok(bills);
         }
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> CloseBill(int id, [FromBody] string patientid)
+        {
+            var success = await _BillRepo.CloseBill(id, patientid);
+            if (success != null)
+            {
+                return Ok(success);
+            }
+            else
+            {
+                return BadRequest("Failed to close the bill.");
+            }
+        }
     }
 }
