@@ -184,5 +184,11 @@ namespace Safi.Controllers
             var reportsDto = reports.Select(r => r.ToReportDoctorToPatientDto());
             return Ok(reportsDto);
         }
+        [HttpGet("doctor/{doctorId}/patients")]
+        public async Task<IActionResult> GetAllpatientsreportedbySpecificDoctor(string doctorId)
+        {
+            var patients = await _repo.GetAllpatientsreportedbySpecificDoctor(doctorId);
+            return Ok(patients);
+        }
     }
 }

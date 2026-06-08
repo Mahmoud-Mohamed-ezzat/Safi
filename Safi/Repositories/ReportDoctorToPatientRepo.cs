@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.ReportDoctorToPatientDto;
+using Safi.Dto.Account;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
@@ -173,6 +174,20 @@ namespace Safi.Repositories
                  .Where(r => r.PatientId == PatientId && DateOnly.FromDateTime(r.CreatedAt) <= DateOnly.FromDateTime(app.EndTime == null ? DateTime.UtcNow : app.EndTime.Value) && DateOnly.FromDateTime(r.CreatedAt) >= DateOnly.FromDateTime(app.StartTime.Value))
                  .ToListAsync();
             return reports;
+        }
+
+        public async Task<List<GetPatientsDto>> GetAllpatientsreportedbySpecificDoctor(string DoctorId)
+        {
+            var patients = await _context.ReportDoctorToPatients
+                .Where(r => r.DoctorId == DoctorId)
+                .Include(r => r.Patient)
+                .ToListAsync();
+            var patientsDto = new List<GetPatientsDto>();
+            foreach (var report in patients)
+            {
+                patientsDto.Add(report.Patient.ToGetPatientsDto());
+            }
+            return patientsDto;
         }
     }
 }

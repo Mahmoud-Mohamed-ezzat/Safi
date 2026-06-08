@@ -1,5 +1,7 @@
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Models;
+using Safi.Dto.Account;
+
 
 namespace Safi.Interfaces
 {
@@ -21,5 +23,6 @@ namespace Safi.Interfaces
         Task<List<ReportDoctorToPatient>> GetByDoctorNameAsync(string doctorName);
         Task<List<ReportDoctorToPatient>> GetByDoctorNameandPatientNameAsync(string doctorName,string patientName);
         Task<List<ReportDoctorToPatient>> GetAllReportwroteWhilePatientAppointsToRoom(string PatientId,int  AppointmentToRoomId);
+        Task<List<GetPatientsDto>> GetAllpatientsreportedbySpecificDoctor(string DoctorId);
     }
 }
