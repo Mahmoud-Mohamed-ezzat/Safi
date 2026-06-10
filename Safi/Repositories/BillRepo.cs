@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Safi.Dto.Bill;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
@@ -62,7 +63,7 @@ namespace Safi.Repositories
                 .ToListAsync();
             bill.TotalAmount += Appointments.Sum(a => a.TotalPrice) ?? 0;
             bill.Status = "closed";
-            bill.end_Date = DateTime.Now;
+            bill.end_Date = EgyptTime.Now;
             await _context.SaveChangesAsync();
             return bill.toBillDto();
         }

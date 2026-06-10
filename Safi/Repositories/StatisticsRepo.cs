@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Statistics;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Models;
 
@@ -21,7 +22,7 @@ namespace Safi.Repositories
 
             var assignedDoctors = await _context.AssignWorks
                 .IgnoreQueryFilters()
-                .Where(a => a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow)) // Active assignments
+                .Where(a => a.EndDate == null || a.EndDate >= EgyptTime.Today) // Active assignments
                 .Select(a => a.userId)
                 .Distinct()
                 .CountAsync();
@@ -98,7 +99,7 @@ namespace Safi.Repositories
 
             var assignments = _context.AssignWorks
                 .IgnoreQueryFilters()
-                .Where(a => a.EndDate == null || a.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow));
+                .Where(a => a.EndDate == null || a.EndDate >= EgyptTime.Today);
 
             var grouped = assignments.GroupBy(a => a.RoomId);
 

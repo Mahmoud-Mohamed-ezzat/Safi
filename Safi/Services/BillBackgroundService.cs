@@ -5,6 +5,7 @@ using Safi.Dto.OutBoxDto;
 using Safi.Dto.EmailDto;
 using Safi.Dto.Bill;
 using Safi.Dto.AppointmentToRoom;
+using Safi.Helpers;
 using Microsoft.EntityFrameworkCore;
 namespace Safi.Services
 {
@@ -72,7 +73,7 @@ namespace Safi.Services
                         {
                             await billingService.CreateBill(new createbillDto
                             {
-                                st_Date = DateTime.UtcNow,
+                                st_Date = EgyptTime.Now,
                                 Status = "open",
                                 Details = reservationDetails,
                                 TotalAmount = price,
@@ -99,7 +100,7 @@ namespace Safi.Services
                                 Body = $"Dear Dr. {data.DoctorName},\nYou have a new reservation from patient {data.PatientName} on {data.Time}."
                             });
                         }
-                        msg.ProcessedAt = DateTime.UtcNow;
+                        msg.ProcessedAt = EgyptTime.Now;
                         await dbContext.SaveChangesAsync(stoppingToken);
                     }
                     else if (msg.Type == "BillAndEmailForAppointment")
@@ -140,7 +141,7 @@ namespace Safi.Services
                         {
                             await billingService.CreateBill(new createbillDto
                             {
-                                st_Date = DateTime.UtcNow,
+                                st_Date = EgyptTime.Now,
                                 Status = "open",
                                 Details = details,
                                 TotalAmount = totalAmount,
@@ -168,7 +169,7 @@ namespace Safi.Services
                             });
                         }
 
-                        msg.ProcessedAt = DateTime.UtcNow;
+                        msg.ProcessedAt = EgyptTime.Now;
                         await dbContext.SaveChangesAsync(stoppingToken);
                     }
                     else if (msg.Type == "CreateAppointmentEmail")
@@ -195,7 +196,7 @@ namespace Safi.Services
                                     <p>Best regards,<br/>Safi Hospital Team</p>"
                             });
                         }
-                        msg.ProcessedAt = DateTime.UtcNow;
+                        msg.ProcessedAt = EgyptTime.Now;
                         await dbContext.SaveChangesAsync(stoppingToken);
                     }
                     else if (msg.Type == "CancelReservationAndBill")
@@ -204,7 +205,7 @@ namespace Safi.Services
                         if (data == null)
                         {
                             _logger.LogWarning("Outbox message {Id} has empty or invalid payload", msg.Id);
-                            msg.ProcessedAt = DateTime.UtcNow;
+                            msg.ProcessedAt = EgyptTime.Now;
                             await dbContext.SaveChangesAsync(stoppingToken);
                             continue;
                         }
@@ -285,7 +286,7 @@ namespace Safi.Services
                             });
                         }
 
-                        msg.ProcessedAt = DateTime.UtcNow;
+                        msg.ProcessedAt = EgyptTime.Now;
                         await dbContext.SaveChangesAsync(stoppingToken);
                     }
                 }
@@ -293,7 +294,7 @@ namespace Safi.Services
                 {
                     _logger.LogError(ex, "Failed to process outbox message {Id}", msg.Id);
                     msg.Error = ex.Message;
-                    msg.FailedAt = DateTime.UtcNow;
+                    msg.FailedAt = EgyptTime.Now;
                     msg.RetryCount++;
                     await dbContext.SaveChangesAsync(stoppingToken);
                 }

@@ -1,4 +1,5 @@
 using Safi.Dto.AssignWorksDto;
+using Safi.Helpers;
 using Safi.Models;
 
 namespace Safi.Mapper
@@ -30,7 +31,7 @@ namespace Safi.Mapper
                 RoomId = dto.RoomId,
                 userId = dto.DoctorId,
                 ShiftId = dto.ShiftId,
-                StartDate = dto.StartDate != null ? dto.StartDate.Value : DateOnly.FromDateTime(DateTime.Now),
+                StartDate = dto.StartDate != null ? dto.StartDate.Value : EgyptTime.Today,
                 EndDate = dto.EndDate != null ? dto.EndDate.Value : null,
             };
         }

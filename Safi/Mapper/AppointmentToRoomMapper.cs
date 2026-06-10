@@ -1,4 +1,5 @@
 using Safi.Dto.AppointmentToRoom;
+using Safi.Helpers;
 using Safi.Models;
 
 namespace Safi.Mapper
@@ -13,7 +14,7 @@ namespace Safi.Mapper
                 PatientId = dto.PatientId,
                 RoomId = dto.RoomId,
                 DoctorId = dto.PrimaryDoctorId,
-                StartTime = dto.StartTime ?? DateTime.UtcNow,
+                StartTime = dto.StartTime ?? EgyptTime.Now,
             };
         }
 
@@ -33,8 +34,8 @@ namespace Safi.Mapper
                 RoomType = entity.Room?.GetType().Name,
                 DepartmentId = entity.Room?.DepartmentId,
                 DepartmentName = entity.Room?.Department?.Name,
-                StartTime = entity.StartTime,
-                EndTime = entity.EndTime,
+                StartTime = entity.StartTime.HasValue ? EgyptTime.FromUtc(entity.StartTime.Value) : null,
+                EndTime = entity.EndTime.HasValue ? EgyptTime.FromUtc(entity.EndTime.Value) : null,
                 IsDeleted = entity.Patient?.IsDeleted ?? false,
                 IsActive = entity.Patient?.IsActive ?? true,
                 BillId = entity.BillId

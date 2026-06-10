@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Safi.Helpers;
 
 namespace Safi.Models
 {
@@ -23,7 +24,7 @@ namespace Safi.Models
         public virtual Room? Room { get; set; }
         [ForeignKey("BillId")]
         public virtual Bill? Bill { get; set; }
-        public DateTime? StartTime { get; set; }=DateTime.UtcNow;
+        public DateTime? StartTime { get; set; } = EgyptTime.Now;
         public DateTime? EndTime { get; set; }
         [Column(TypeName = "decimal(10,2)")]
         public decimal? TotalPrice { get; set; }

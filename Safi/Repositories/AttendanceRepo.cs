@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Attendance;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
@@ -17,7 +18,7 @@ namespace Safi.Repositories
         public async Task<GetAttendanceDto> CreateAttendanceAsync(CreateAttendanceDto dto)
         {
             var attendance = dto.ToCreateAttendance();
-            if (dto.Date < DateOnly.FromDateTime(DateTime.UtcNow))
+            if (dto.Date < EgyptTime.Today)
             {
                 throw new InvalidOperationException("Attendance date cannot be in the past");
             }
@@ -54,7 +55,7 @@ namespace Safi.Repositories
 
         public async Task<List<GetAttendanceDto?>> GetAllTodayAsync()
         {
-            var attendances = await _context.Attendance.Include(a => a.Doctor).Include(a => a.DoctorShift).Where(a => a.Date == DateOnly.FromDateTime(DateTime.UtcNow)).AsNoTracking().ToListAsync();
+            var attendances = await _context.Attendance.Include(a => a.Doctor).Include(a => a.DoctorShift).Where(a => a.Date == EgyptTime.Today).AsNoTracking().ToListAsync();
             return attendances.Select(a => (GetAttendanceDto?)a.ToGetAttendanceDto()).ToList();
         }
 

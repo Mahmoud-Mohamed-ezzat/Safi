@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Dto.Account;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
@@ -65,7 +66,7 @@ namespace Safi.Repositories
         public async Task<ReportDoctorToPatient> CreateAsync(CreateReportDoctorToPatientDto dto)
         {
             var report = dto.ToReportDoctorToPatient();
-            report.CreatedAt = DateTime.Now;
+            report.CreatedAt = EgyptTime.Now;
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == dto.PatientId);
             var Doctor = await _context.Doctors.FirstOrDefaultAsync(p => p.Id == dto.DoctorId);
             if (patient != null && Doctor != null)
@@ -171,7 +172,7 @@ namespace Safi.Repositories
                  .IgnoreQueryFilters()
                  .Include(r => r.Patient)
                  .Include(r => r.Doctor)
-                 .Where(r => r.PatientId == PatientId && DateOnly.FromDateTime(r.CreatedAt) <= DateOnly.FromDateTime(app.EndTime == null ? DateTime.UtcNow : app.EndTime.Value) && DateOnly.FromDateTime(r.CreatedAt) >= DateOnly.FromDateTime(app.StartTime.Value))
+                 .Where(r => r.PatientId == PatientId && DateOnly.FromDateTime(r.CreatedAt) <= DateOnly.FromDateTime(app.EndTime == null ? EgyptTime.Now : app.EndTime.Value) && DateOnly.FromDateTime(r.CreatedAt) >= DateOnly.FromDateTime(app.StartTime.Value))
                  .ToListAsync();
             return reports;
         }

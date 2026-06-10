@@ -1,4 +1,5 @@
 using Safi.Dto.Prices;
+using Safi.Helpers;
 using Safi.Models;
 
 namespace Safi.Mapper
@@ -11,7 +12,7 @@ namespace Safi.Mapper
             {
                 ServiceName = dto.ServiceName,
                 Price = dto.Price,
-                St_Date = dto.St_Date??DateOnly.FromDateTime(DateTime.Now),
+                St_Date = dto.St_Date ?? EgyptTime.Today,
                 End_Date = dto.End_Date,
                 Is_Deleted = false
             };

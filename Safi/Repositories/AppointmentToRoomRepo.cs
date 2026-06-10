@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Account;
 using Safi.Dto.AppointmentToRoom;
 using Safi.Dto.ReportDoctorToPatientDto;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
@@ -36,7 +37,7 @@ namespace Safi.Repositories
         // Helper method to safely convert nullable DateTime to DateOnly, defaulting to current date
         private static DateOnly GetEndDateOrNow(DateTime? endTime)
         {
-            return DateOnly.FromDateTime(endTime ?? DateTime.UtcNow);
+            return DateOnly.FromDateTime(endTime ?? EgyptTime.Now);
         }
 
         public async Task<AppointmentToRoomDto> CreateAsync(CreateAppointmentToRoomDto dto)
@@ -134,7 +135,10 @@ namespace Safi.Repositories
                 var departmentName = appointment.Room?.Department?.Name ?? "Unknown";
                 var medicines = dto.Medicines != null ? string.Join(", ", dto.Medicines) : "None";
 
-                user.History += $" \n Appointment in room {appointment.RoomId} with doctor {doctorName} in department {departmentName} Report: {dto.Report} Medicines: {medicines} started at {appointment.StartTime} ended at {dto.EndTime}";
+                var localStartTime = EgyptTime.FromUtc(appointment.StartTime);
+                var localEndTime = EgyptTime.FromUtc(dto.EndTime);
+
+                user.History += $" \n Appointment in room {appointment.RoomId} with doctor {doctorName} in department {departmentName} Report: {dto.Report} Medicines: {medicines} started at {localStartTime} ended at {localEndTime}";
             }
 
             // Create a formal report record
@@ -144,7 +148,7 @@ namespace Safi.Repositories
                 DoctorId = dto.CreatedBy ?? appointment.DoctorId ?? string.Empty,
                 Report = dto.Report,
                 Medicines = dto.Medicines ?? new List<string>(),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = EgyptTime.Now
             };
             await _context.ReportDoctorToPatients.AddAsync(report);
 
@@ -194,7 +198,7 @@ namespace Safi.Repositories
                 .Include(a => a.Doctor)
                 .Include(a => a.Room)
                     .ThenInclude(r => r!.Department)
-                .Where(a => a.PatientId == patientId && a.StartTime.HasValue && DateOnly.FromDateTime(a.StartTime.Value) <= Date && DateOnly.FromDateTime(a.EndTime == null ? DateTime.UtcNow : a.EndTime.Value) >= Date)
+                .Where(a => a.PatientId == patientId && a.StartTime.HasValue && DateOnly.FromDateTime(a.StartTime.Value) <= Date && DateOnly.FromDateTime(a.EndTime == null ? EgyptTime.Now : a.EndTime.Value) >= Date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -237,7 +241,7 @@ namespace Safi.Repositories
                 .Where(a => a.DoctorId == doctorId &&
                            a.StartTime.HasValue &&
                            DateOnly.FromDateTime(a.StartTime.Value) <= Date &&
-                           DateOnly.FromDateTime(a.EndTime ?? DateTime.UtcNow) >= Date)
+                           DateOnly.FromDateTime(a.EndTime ?? EgyptTime.Now) >= Date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -250,7 +254,7 @@ namespace Safi.Repositories
                 .Where(a => a.RoomId == roomId &&
                            a.StartTime.HasValue &&
                            DateOnly.FromDateTime(a.StartTime.Value) <= Date &&
-                           DateOnly.FromDateTime(a.EndTime ?? DateTime.UtcNow) >= Date)
+                           DateOnly.FromDateTime(a.EndTime ?? EgyptTime.Now) >= Date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -264,7 +268,7 @@ namespace Safi.Repositories
                            a.Patient.Name.ToLower() == PatientName.ToLower() &&
                            a.StartTime.HasValue &&
                            DateOnly.FromDateTime(a.StartTime.Value) <= Date &&
-                           DateOnly.FromDateTime(a.EndTime ?? DateTime.UtcNow) >= Date)
+                           DateOnly.FromDateTime(a.EndTime ?? EgyptTime.Now) >= Date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -278,7 +282,7 @@ namespace Safi.Repositories
                            a.Doctor.Name.ToLower() == DoctorName.ToLower() &&
                            a.StartTime.HasValue &&
                            DateOnly.FromDateTime(a.StartTime.Value) <= Date &&
-                           DateOnly.FromDateTime(a.EndTime ?? DateTime.UtcNow) >= Date)
+                           DateOnly.FromDateTime(a.EndTime ?? EgyptTime.Now) >= Date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -291,7 +295,7 @@ namespace Safi.Repositories
                 .Where(a => a.DoctorId == doctorId &&
                            a.StartTime.HasValue &&
                            DateOnly.FromDateTime(a.StartTime.Value) <= Date &&
-                           DateOnly.FromDateTime(a.EndTime ?? DateTime.UtcNow) >= Date)
+                           DateOnly.FromDateTime(a.EndTime ?? EgyptTime.Now) >= Date)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -343,7 +347,7 @@ namespace Safi.Repositories
                                 ad.RoomId == a.RoomId &&
                                 a.StartTime.HasValue &&
                                 ad.EndDate >= DateOnly.FromDateTime(a.StartTime.Value) &&
-                                (!a.EndTime.HasValue || ad.StartDate <= DateOnly.FromDateTime(a.EndTime == null ? DateTime.UtcNow : a.EndTime.Value))))
+                                (!a.EndTime.HasValue || ad.StartDate <= DateOnly.FromDateTime(a.EndTime == null ? EgyptTime.Now : a.EndTime.Value))))
                 .AsNoTracking()
                 .ToListAsync();
 

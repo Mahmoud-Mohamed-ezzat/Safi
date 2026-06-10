@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.AppointmentToRoom;
 using Safi.Dto.EmailDto;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Dto.ReportDoctorToPatientDto;
 using Safi.Mapper;
@@ -408,7 +409,7 @@ namespace Safi.Hubs
                         RoomType = roomType,
                         RoomNumber = room.Number.ToString(),
                         DepartmentName = room.Department?.Name ?? "N/A",
-                        StartTime = appointment.StartTime ?? DateTime.UtcNow
+                        StartTime = appointment.StartTime ?? EgyptTime.Now
                     })
                 };
                 _context.OutboxMessages.Add(outboxMsg);
@@ -478,8 +479,8 @@ namespace Safi.Hubs
                             RoomType = roomType,
                             RoomNumber = room.Number,
                             DepartmentName = room.Department?.Name ?? "Unknown",
-                            StartTime = activeAppointment.StartTime ?? DateTime.UtcNow,
-                            EndTime = activeAppointment.EndTime ?? DateTime.UtcNow
+                            StartTime = activeAppointment.StartTime ?? EgyptTime.Now,
+                            EndTime = activeAppointment.EndTime ?? EgyptTime.Now
                         })
                     };
                     _context.OutboxMessages.Add(outboxMsg);
@@ -521,7 +522,7 @@ namespace Safi.Hubs
                         RoomNumber = room.Number,
                         AppointmentId = activeAppointment.Id,
                         PatientId = activeAppointment.PatientId,
-                        EndTime = DateTime.UtcNow
+                        EndTime = EgyptTime.Now
                     });
                 }
             }

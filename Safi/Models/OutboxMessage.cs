@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Safi.Helpers;
 
 namespace Safi.Models
 {
@@ -13,7 +14,7 @@ namespace Safi.Models
         public string Type { get; set; } = string.Empty; // "BillAndEmailForReservation" 
         [Required]
         public string Payload { get; set; } = string.Empty; // JSON
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = EgyptTime.Now;
         public DateTime? ProcessedAt { get; set; }
         public DateTime? FailedAt { get; set; }
         public string? Error { get; set; }

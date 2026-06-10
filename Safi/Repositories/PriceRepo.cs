@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Safi.Dto.Prices;
+using Safi.Helpers;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
@@ -17,7 +18,7 @@ namespace Safi.Repositories
         {
           var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
           try{ 
-                var today = DateOnly.FromDateTime(DateTime.Now);
+                var today = EgyptTime.Today;
                 DateOnly effectiveStDate = dto.St_Date ?? today;
                 
             var ExistPrice_Active = await _context.Prices
@@ -52,7 +53,7 @@ namespace Safi.Repositories
                 St_Date = effectiveStDate,
                 End_Date = dto.End_Date,
                 Is_Deleted = false,
-                CreatedAt=DateTime.UtcNow
+                CreatedAt = EgyptTime.Now
                 
             };
             await _context.Prices.AddAsync(newPrice);
@@ -87,7 +88,7 @@ namespace Safi.Repositories
 
         public async Task<List<GetPriceDto>> GetActivePricesAsync(string ServiceName)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var today = EgyptTime.Today;
             var ActivedPrices= await _context.Prices
             .Where(p => p.ServiceName == ServiceName
                              && !p.Is_Deleted
@@ -115,7 +116,7 @@ namespace Safi.Repositories
 
         public async Task<List<GetPriceDto>> GetCurrentPricesAsync()
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var today = EgyptTime.Today;
             var currentPrices = await _context.Prices
             .Where(p => !p.Is_Deleted
             && p.St_Date <= today
@@ -139,7 +140,7 @@ namespace Safi.Repositories
 
         public async Task<decimal> GetPriceNowAsync(string ServiceName)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var today = EgyptTime.Today;
             var price = await _context.Prices
             .Where(p => p.ServiceName == ServiceName
             && !p.Is_Deleted
@@ -161,7 +162,7 @@ namespace Safi.Repositories
 
         public async Task<Prices> GetTheActivePriceNowAsync(string ServiceName)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var today = EgyptTime.Today;
             var price = await _context.Prices
             .Where(p => p.ServiceName == ServiceName
             && !p.Is_Deleted

@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Safi.Helpers;
 
 namespace Safi.Models
 {
@@ -25,6 +26,6 @@ namespace Safi.Models
         // Admin soft-delete only. Expired prices keep IsDeleted = false.
         public bool Is_Deleted { get; set; } = false;
         public string? CreatedBy { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = EgyptTime.Now;
     }
 }

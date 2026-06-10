@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Safi.Models;
 using Safi.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +33,7 @@ namespace Safi.Hubs
                 SenderId = senderId,
                 ReceiverId = receiverId,
                 MessageContent = encryptedText,
-                CreatedAt = DateTime.Now
+                CreatedAt = EgyptTime.Now
             };
 
             _context.Messages.Add(message);
