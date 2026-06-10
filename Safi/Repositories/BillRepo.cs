@@ -53,7 +53,7 @@ namespace Safi.Repositories
 
         public async Task<BillDto> CloseBill(int id, string patientId)
         {
-            var bill = await _context.Bills.FirstOrDefaultAsync(b => b.PatientId == patientId && b.Id == id);
+            var bill = await _context.Bills.Include(b => b.Patient).FirstOrDefaultAsync(b => b.PatientId == patientId && b.Id == id);
                         if (bill == null) return null;
             var Appointments = await _context
                 .AppointmentToRooms
