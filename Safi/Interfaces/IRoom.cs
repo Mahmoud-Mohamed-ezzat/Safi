@@ -15,5 +15,6 @@ namespace Safi.Interfaces
         Task<List<RoomDto>> GetByDepartmentNameAsync(string departmentName);
         Task<List<RoomDto>> GetByRoomNumberAsync(int roomNumber);
         Task<bool> IsRoomNumberUniqueAsync(int roomNumber, int departmentId, int? excludeId = null);
+        Task<List<RoomDto>> GetRoomByDepartmentIdAsyncandtype(int departmentId);
     }
 }

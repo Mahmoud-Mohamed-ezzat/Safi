@@ -64,45 +64,48 @@ namespace Safi.Repositories
         }
         public async Task<bool> DeleteOneReservation(int reservationId)
         {
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                await _context.Database.BeginTransactionAsync();
                 var reservation = await _context.Reservations.FirstOrDefaultAsync(r => r.Id == reservationId);
                 if (reservation == null)
+                {
+                    await tx.RollbackAsync();
                     return false;
+                }
                 _context.Reservations.Remove(reservation);
                 await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+                await tx.CommitAsync();
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                await _context.Database.RollbackTransactionAsync();
+                await tx.RollbackAsync();
                 return false;
             }
         }
         public async Task<bool> DeleteManyReservationsByAvailableTimeId(int availableTimeId)
         {
+            var availableTime = await _context.TimeAvailableOfDoctors
+                .AsNoTracking()
+                .Include(t => t.Doctor)
+                    .ThenInclude(d => d.Department)
+                .FirstOrDefaultAsync(t => t.Id == availableTimeId);
+
+            if (availableTime == null)
+                return false;
+
+            var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
+
+            // Block deletion of past available times
+            if (targetDate.Date < DateTime.Today)
+                return false;
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                var availableTime = await _context.TimeAvailableOfDoctors
-                    .AsNoTracking()
-                    .Include(t => t.Doctor)
-                        .ThenInclude(d => d.Department)
-                    .FirstOrDefaultAsync(t => t.Id == availableTimeId);
-
-                if (availableTime == null)
-                    return false;
-
-                var targetDate = availableTime.Day.ToDateTime(TimeOnly.MinValue);
-
-                // Block deletion of past available times
-                if (targetDate.Date < DateTime.Today)
-                    return false;
-
                 // Only delete future or present (today) reservations
                 var reservations = await _context.Reservations
-                    .AsNoTracking()
                     .Include(r => r.Patient)
                     .Include(r => r.Doctor)
                         .ThenInclude(d => d.Department)
@@ -111,7 +114,10 @@ namespace Safi.Repositories
                     .ToListAsync();
 
                 if (reservations.Count == 0)
+                {
+                    await tx.RollbackAsync();
                     return true; // Nothing to delete — operation still succeeded
+                }
 
                 // Collect reserved patients to notify before deleting
                 var reservedReservations = reservations
@@ -152,11 +158,12 @@ namespace Safi.Repositories
 
                 _context.Reservations.RemoveRange(reservations);
                 await _context.SaveChangesAsync();
-
+                await tx.CommitAsync();
                 return true;
             }
             catch (Exception)
             {
+                await tx.RollbackAsync();
                 return false;
             }
         }

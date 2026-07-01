@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Safi.Interfaces;
 
@@ -25,24 +26,33 @@ namespace Safi.Controllers
             var bill = await _BillRepo.GetBill(id);
             return Ok(bill);
         }
+        [HttpGet("GetBillsOfPatient/{patientId}")]
+        public async Task<IActionResult> GetBillsOfPatient(string patientId)
+        {
+            var bills = await _BillRepo.GetBillsOfPatient(patientId);
+            return Ok(bills);
+        }
         [HttpGet("GetBillsinRangeOfDate")]
         public async Task<IActionResult> GetAllBillsInRangeOfDate(DateOnly startDate, DateOnly EndDate)
         {
             var bills = await _BillRepo.GetAllBillsInRangeOfDate(startDate, EndDate);
             return Ok(bills);
         }
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> CloseBill(int id, [FromBody] string patientid)
+        [HttpPut("CloseBill/{id:int}")]
+        [Authorize(Roles = "Staff")]
+        public async Task<IActionResult> CloseBill(int id, [FromQuery] string patientId)
         {
-            var success = await _BillRepo.CloseBill(id, patientid);
-            if (success != null)
+            if (string.IsNullOrEmpty(patientId))
             {
-                return Ok(success);
+                return BadRequest("Patient ID is required.");
             }
-            else
+
+            var updatedBill = await _BillRepo.CloseBill(id, patientId);
+            if (updatedBill != null)
             {
-                return BadRequest("Failed to close the bill.");
+                return Ok(updatedBill);
             }
+            return BadRequest("Failed to close the bill. Verify the Bill ID and Patient ID.");
         }
     }
 }

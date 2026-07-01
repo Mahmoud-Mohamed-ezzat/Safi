@@ -90,7 +90,7 @@ namespace Safi.Repositories
         {
             var today = EgyptTime.Today;
             var ActivedPrices= await _context.Prices
-            .Where(p => p.ServiceName == ServiceName
+            .Where(p => p.ServiceName.ToLower() == ServiceName.ToLower()
                              && !p.Is_Deleted
                              && p.St_Date <= today
                              && (p.End_Date == null || p.End_Date > today))
@@ -130,7 +130,7 @@ namespace Safi.Repositories
         public async Task<decimal> GetPriceInSpecificDateAsync(string ServiceName, DateOnly date)
         {
             var price = await _context.Prices
-            .Where(x => x.ServiceName == ServiceName 
+            .Where(x => x.ServiceName.ToLower() == ServiceName.ToLower() 
             && x.St_Date <= date 
             && (x.End_Date >= date || x.End_Date == null))
             .FirstOrDefaultAsync();
@@ -142,7 +142,7 @@ namespace Safi.Repositories
         {
             var today = EgyptTime.Today;
             var price = await _context.Prices
-            .Where(p => p.ServiceName == ServiceName
+            .Where(p => p.ServiceName.ToLower() == ServiceName.ToLower()
             && !p.Is_Deleted
             && p.St_Date <= today
             && (p.End_Date == null || p.End_Date > today))
@@ -164,7 +164,7 @@ namespace Safi.Repositories
         {
             var today = EgyptTime.Today;
             var price = await _context.Prices
-            .Where(p => p.ServiceName == ServiceName
+            .Where(p => p.ServiceName.ToLower() == ServiceName.ToLower()
             && !p.Is_Deleted
             && p.St_Date <= today
             && (p.End_Date == null || p.End_Date > today))
@@ -175,7 +175,7 @@ namespace Safi.Repositories
         public async Task<List<GetPriceDto>> GetAllPricesServiceAsync(string ServiceName)
         {
             var allPrices = await _context.Prices
-            .Where(x => x.ServiceName == ServiceName)
+            .Where(x => x.ServiceName.ToLower() == ServiceName.ToLower())
             .ToListAsync();
             var pricesDto = allPrices.Select(x=>x.ToGetPriceDto()).ToList();
             return pricesDto;
@@ -184,7 +184,7 @@ namespace Safi.Repositories
         public async Task<List<GetPriceDto>> GetPricesByServiceAndDateRangeAsync(string serviceName, DateOnly startDate, DateOnly endDate)
         {
             var prices = await _context.Prices
-                .Where(p => p.ServiceName == serviceName
+                .Where(p => p.ServiceName.ToLower() == serviceName.ToLower()
                          && !p.Is_Deleted
                          && p.St_Date <= endDate
                          && (p.End_Date == null || p.End_Date >= startDate))

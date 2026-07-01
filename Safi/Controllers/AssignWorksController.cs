@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Safi.Dto.AssignWorksDto;
 using Safi.Interfaces;
-
+using Microsoft.AspNetCore.Authorization;
 namespace Safi.Controllers
 {
     [Route("api/[controller]")]
@@ -14,14 +14,14 @@ namespace Safi.Controllers
         {
             _assignWorksRepo = assignWorksRepo;
         }
-
+        [Authorize(Roles = "Admin,subadmin,Doctor")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var assignments = await _assignWorksRepo.GetAllAsync();
             return Ok(assignments);
         }
-
+        [Authorize(Roles = "Admin,subadmin,doctor")]
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -29,7 +29,7 @@ namespace Safi.Controllers
             if (assignment == null) return NotFound();
             return Ok(assignment);
         }
-
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAssignWorksDto dto)
         {
@@ -44,7 +44,7 @@ namespace Safi.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateAssignWorksDto dto)
         {
@@ -60,7 +60,7 @@ namespace Safi.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -68,21 +68,21 @@ namespace Safi.Controllers
             if (!result) return NotFound();
             return NoContent();
         }
-
+        [Authorize(Roles = "Admin,subadmin,Doctor,Staff")]
         [HttpGet("doctor/{doctorId}")]
         public async Task<IActionResult> GetByDoctorId(string doctorId)
         {
             var assignments = await _assignWorksRepo.GetByDoctorIdAsync(doctorId);
             return Ok(assignments);
         }
-
+        [Authorize(Roles = "Admin,subadmin,Doctor,Staff")]
         [HttpGet("room/{roomId:int}")]
         public async Task<IActionResult> GetByRoomId(int roomId)
         {
             var assignments = await _assignWorksRepo.GetByRoomIdAsync(roomId);
             return Ok(assignments);
         }
-
+        [Authorize(Roles = "Admin,subadmin,Doctor,Staff")]
         [HttpGet("date/{date}")]
         public async Task<IActionResult> GetByDate(DateOnly date)
         {
@@ -98,6 +98,7 @@ namespace Safi.Controllers
             var assignments = await _assignWorksRepo.GetAssignWorksForAttendancetoday();
             return Ok(assignments);
         }
+        [Authorize(Roles = "Admin,subadmin,Doctor,Staff")]
         [HttpGet("GetAssignWorksForAttendanceBydate/{date}")]
         public async Task<IActionResult> GetAssignWorksForAttendanceBydate(DateOnly date)
         {

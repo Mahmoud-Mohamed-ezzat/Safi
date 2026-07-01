@@ -3,7 +3,7 @@ using Safi.Dto.Prices;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace Safi.Controllers
 {
     [Route("api/[controller]")]
@@ -16,21 +16,21 @@ namespace Safi.Controllers
         {
             _pricesRepo = pricesRepo;
         }
-
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var prices = await _pricesRepo.GetAllAsync();
             return Ok(prices);
         }
-
+[Authorize(Roles = "Admin,subadmin,Staff")]
         [HttpGet("current")]
         public async Task<IActionResult> GetCurrentPrices()
         {
             var prices = await _pricesRepo.GetCurrentPricesAsync();
             return Ok(prices);
         }
-
+[Authorize(Roles = "Admin,subadmin,Staff")]
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
@@ -38,7 +38,7 @@ namespace Safi.Controllers
             if (price == null) return NotFound();
             return Ok(price);
         }
-
+        [Authorize(Roles = "Admin,subadmin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePriceDto dto)
         {

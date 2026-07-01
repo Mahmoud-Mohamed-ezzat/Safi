@@ -31,10 +31,9 @@ namespace Safi.Repositories
         {
             var rooms = await _context.Rooms
                 .Include(r => r.Department)
-                .Where(r => r.GetType() == typeof(Room) && r.GetType().Name == type)
+                .Where(r => r.GetType().Name.ToLower() == type.ToLower())
                 .AsNoTracking()
                 .ToListAsync();
-
             return rooms.Select(r => r.ToRoomDto()).ToList();
         }
 
@@ -131,7 +130,16 @@ namespace Safi.Repositories
 
             return rooms.Select(r => r.ToRoomDto()).ToList();
         }
+        public async Task<List<RoomDto>> GetRoomByDepartmentIdAsyncandtype(int departmentId)
+        {
+            var rooms = await _context.Rooms
+                .Include(r => r.Department)
+                .Where(r => (r.GetType() == typeof(Room) || r.GetType() == typeof(ICU) || r.GetType() == typeof(Emergency)) && r.DepartmentId == departmentId)
+                .AsNoTracking()
+                .ToListAsync();
 
+            return rooms.Select(r => r.ToRoomDto()).ToList();
+        }
         public async Task<List<RoomDto>> GetByDepartmentNameAsync(string departmentName)
         {
             var rooms = await _context.Rooms

@@ -130,5 +130,17 @@ namespace Safi.Repositories
             var bill = await _context.Bills.Include(b => b.Patient).AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
             return bill?.toBillDto();
         }
+
+        public async Task<List<BillDto>> GetBillsOfPatient(string patientId)
+        {
+            var bills = await _context.Bills
+                .Include(b => b.Patient)
+                .Include(b => b.Appointments)
+                .AsNoTracking()
+                .Where(b => b.PatientId == patientId)
+                .OrderByDescending(b => b.st_Date)
+                .ToListAsync();
+            return bills.Select(b => b.toBillDto()).ToList();
+        }
     }
 }

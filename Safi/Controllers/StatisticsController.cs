@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Safi.Dto.Statistics;
 using Safi.Interfaces;
 
 namespace Safi.Controllers
 {
+    [Authorize(Roles ="Admin,SubAdmin")]
     [Route("api/[controller]")]
     [ApiController]
     public class StatisticsController : ControllerBase

@@ -169,10 +169,12 @@ builder.Services.AddSignalR();
 TypeDescriptor.AddAttributes(typeof(DateOnly), new TypeConverterAttribute(typeof(DateOnlyTypeConverter)));
 
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<HeartDiseasModel>();
 builder.Services.AddTransient<LiverModel>();
 builder.Services.AddScoped<MedicineModelService>();
+builder.Services.AddScoped<DiseaseModel>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<PriceSegmentCalculator>();
 builder.Services.AddScoped<IDepartment, DepartmentRepo>();

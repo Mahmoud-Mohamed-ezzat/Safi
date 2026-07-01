@@ -12,7 +12,8 @@ namespace Safi.Mapper
                 Id = room.Id,
                 Number = room.Number,
                 DepartmentId = room.DepartmentId,
-                DepartmentName = room.Department?.Name
+                DepartmentName = room.Department?.Name,
+                roomType = room.GetType().Name
             };
         }
 

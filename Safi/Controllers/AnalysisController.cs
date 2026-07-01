@@ -3,6 +3,7 @@ using Safi.Dto.Analysis;
 using Safi.Interfaces;
 using Safi.Mapper;
 using Safi.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Safi.Controllers
 {
@@ -16,7 +17,7 @@ namespace Safi.Controllers
         {
             _analysisRepo = analysisRepo;
         }
-
+        [Authorize()]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -32,7 +33,7 @@ namespace Safi.Controllers
             if (analysis == null) return NotFound();
             return Ok(analysis.ToGetAnalysisDto());
         }
-
+[Authorize(Roles = "Admin,subadmin,doctor")]
         [HttpGet("patient/{patientId}")]
         public async Task<IActionResult> GetByPatientId([FromRoute] string patientId)
         {
@@ -40,7 +41,7 @@ namespace Safi.Controllers
             var dtos = analyses.Select(a => a.ToGetAnalysisOfPatientDto());
             return Ok(dtos);
         }
-
+        [Authorize(Roles = "Admin,subadmin,doctor")]
         [HttpGet("patient/custom/{customId:int}")]
         public async Task<IActionResult> GetByPatientCustomId([FromRoute] int customId)
         {
